@@ -13,7 +13,7 @@ Jump to any location with two keystrokes.
 - Initiate search with `s`
 - Start typing search pattern
 - Type highlighted label to jump to corresponding location at any time
-- Or press `Enter` to continue with stadard `/` search
+- Or press `Enter` to continue with regular (`/`) search
 - Use `Backspace` to edit search pattern
 
 Tested on Neovim 0.8.0.

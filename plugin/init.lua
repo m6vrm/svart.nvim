@@ -1,6 +1,7 @@
 local highlights = {
     SvartDim = { default = true, link = "Comment" },
     SvartSearch = { default = true, link = "Search" },
+    SvartCursor = { default = true, link = "Cursor" },
     SvartLabel = { default = true, link = "CurSearch" },
     SvartMoreMsg = { default = true, link = "MoreMsg" },
     SvartErrorMsg = { default = true, link = "ErrorMsg" },
