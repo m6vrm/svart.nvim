@@ -1,6 +1,4 @@
-<figure class="video_container">
-    <iframe src="https://i.imgur.com/dRU8MkA.mp4" frameborder="0" allowfullscreen="true" height="570" width="700"></iframe>
-</figure>
+![Preview](https://i.imgur.com/dRU8MkA.mp4)
 
 Jump to any location with two keystrokes.
 
