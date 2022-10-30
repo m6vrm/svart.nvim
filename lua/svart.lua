@@ -204,13 +204,19 @@ function search()
     local labeled_matches = {}
     local prompt_error = false
 
-    -- Enter search
     highlighter.dim_content()
 
     while true do
         show_prompt(query, prompt_error)
 
+        -- Highlight current cursor
+        local cursor_pos = get_cursor_pos()
+        highlighter.highlight_cursor(cursor_pos, true)
+
+        vim.cmd([[ redraw ]])
+
         local char = vim.fn.getcharstr()
+
         highlighter.clear_search()
 
         -- Cancel on Esc
@@ -257,6 +263,12 @@ function search()
             table.insert(matches, match)
         end
 
+        if #matches == 1 then
+            -- Immediately jump if there's only one match
+            jump_to_match(matches[1])
+            break
+        end
+
         if #matches == 0 then
             -- Nothing found, highlight prompt
             prompt_error = true
@@ -268,18 +280,12 @@ function search()
             labeled_matches = generate_labels(matches, query)
             highlighter.highlight_labels(labeled_matches, query)
 
-            -- Highlight current cursor
-            local cursor_pos = get_cursor_pos()
-            highlighter.highlight_cursor(cursor_pos, true)
 
             -- Highlight best match cursor
             highlighter.highlight_cursor(matches[1], false)
         end
-
-        vim.cmd([[ redraw ]])
     end
 
-    -- Leave search
     highlighter.restore_content()
     clear_prompt()
 end
