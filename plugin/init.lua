@@ -1,10 +1,11 @@
 local highlights = {
     SvartDim = { default = true, link = "Comment" },
     SvartSearch = { default = true, link = "Search" },
-    SvartCursor = { default = true, link = "Cursor" },
+    SvartSearchCursor = { default = true, link = "Cursor" },
+    SvartCurrentCursor = { default = true, link = "TermCursorNC" },
     SvartLabel = { default = true, link = "CurSearch" },
-    SvartMoreMsg = { default = true, link = "MoreMsg" },
-    SvartErrorMsg = { default = true, link = "ErrorMsg" },
+    SvartRegularPrompt = { default = true, link = "MoreMsg" },
+    SvartErrorPrompt = { default = true, link = "ErrorMsg" },
 }
 
 for key, value in pairs(highlights) do

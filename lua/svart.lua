@@ -2,7 +2,7 @@ local function replace_termcodes(string)
     return vim.api.nvim_replace_termcodes(string, true, false, true)
 end
 
-function get_visible_area()
+function get_visible_bounds()
     return {
         top = vim.fn.line("w0"),
         bottom = vim.fn.line("w$"),
@@ -30,7 +30,7 @@ function begin_regular_search(query)
 
     local saved_view_state = save_view_state()
     local pattern = get_search_pattern(query)
-    vim.cmd("/" .. pattern)
+    vim.cmd("/" .. pattern) -- todo
     saved_view_state.restore()
 end
 
@@ -39,11 +39,11 @@ function get_matches(query, backwards)
         return function () return nil end
     end
 
-    local visible_area = get_visible_area()
+    local visible_bounds = get_visible_bounds()
     local saved_view_state = save_view_state()
 
     local search_flags = backwards and "b" or ""
-    local search_stopline = backwards and visible_area.top or visible_area.bottom
+    local search_stopline = backwards and visible_bounds.top or visible_bounds.bottom
 
     return function ()
         local pattern = get_search_pattern(query) .. "\\_."
@@ -51,7 +51,7 @@ function get_matches(query, backwards)
 
         if match[1] == 0 and match[2] == 0 then
             -- Restore cursor pos after search
-            -- since searchpos changes it and we can't use the "c" flag
+            -- since searchpos changing it and we can't use the "c" flag
             -- (this will result an infinite loop)
             saved_view_state.restore()
             return nil
@@ -95,7 +95,7 @@ function generate_labels(matches, query)
 end
 
 function make_highlighter()
-    local visible_area = get_visible_area()
+    local visible_bounds = get_visible_bounds()
     local search_namespace = vim.api.nvim_create_namespace("svart-search")
     local content_namespace = vim.api.nvim_create_namespace("svart-content")
 
@@ -105,16 +105,16 @@ function make_highlighter()
                 0,
                 content_namespace,
                 "SvartDim",
-                { visible_area.top - 1, 0 },
-                { visible_area.bottom - 1, -1 }
+                { visible_bounds.top - 1, 0 },
+                { visible_bounds.bottom - 1, -1 }
             )
         end,
         restore_content = function ()
             vim.api.nvim_buf_clear_namespace(
                 0,
                 content_namespace,
-                visible_area.top - 1,
-                visible_area.bottom
+                visible_bounds.top - 1,
+                visible_bounds.bottom
             )
         end,
         highlight_matches = function (matches, query)
@@ -147,16 +147,17 @@ function make_highlighter()
                 )
             end
         end,
-        highlight_cursor = function (match)
-            local char = get_char_at_pos(match)
+        highlight_cursor = function (pos, current)
+            local char = get_char_at_pos(pos)
+            local highlight_group = current and "SvartCurrentCursor" or "SvartSearchCursor"
 
             vim.api.nvim_buf_set_extmark(
                 0,
                 search_namespace,
-                match[1] - 1,
-                match[2] - 1,
+                pos[1] - 1,
+                pos[2] - 1,
                 {
-                    virt_text = { { char or " ", "SvartCursor" } },
+                    virt_text = { { char or " ", highlight_group } },
                     virt_text_pos = "overlay"
                 }
             )
@@ -165,8 +166,8 @@ function make_highlighter()
             vim.api.nvim_buf_clear_namespace(
                 0,
                 search_namespace,
-                visible_area.top - 1,
-                visible_area.bottom
+                visible_bounds.top - 1,
+                visible_bounds.bottom
             )
         end,
     }
@@ -177,8 +178,13 @@ function jump_to_match(match)
     vim.api.nvim_win_set_cursor(0, { match[1], match[2] - 1 })
 end
 
+function get_cursor_pos()
+    local cursor_pos = vim.api.nvim_win_get_cursor(0)
+    return { cursor_pos[1], cursor_pos[2] + 1 }
+end
+
 function show_prompt(query, error)
-    local highlight_group = error and "SvartErrorMsg" or "SvartMoreMsg"
+    local highlight_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
     vim.api.nvim_echo({ { "svart> " }, { query, highlight_group} }, false, {})
 end
 
@@ -191,7 +197,6 @@ function search()
     local cr_code = replace_termcodes("<CR>")
     local bs_code = replace_termcodes("<BS>")
 
-    -- Enter search
     local query = ""
     local highlighter = make_highlighter()
 
@@ -199,6 +204,7 @@ function search()
     local labeled_matches = {}
     local prompt_error = false
 
+    -- Enter search
     highlighter.dim_content()
 
     while true do
@@ -262,11 +268,15 @@ function search()
             labeled_matches = generate_labels(matches, query)
             highlighter.highlight_labels(labeled_matches, query)
 
-            -- Highlight fake cursor
-            highlighter.highlight_cursor(matches[1])
+            -- Highlight current cursor
+            local cursor_pos = get_cursor_pos()
+            highlighter.highlight_cursor(cursor_pos, true)
 
-            vim.cmd([[ redraw ]])
+            -- Highlight best match cursor
+            highlighter.highlight_cursor(matches[1], false)
         end
+
+        vim.cmd([[ redraw ]])
     end
 
     -- Leave search
