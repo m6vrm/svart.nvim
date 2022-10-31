@@ -4,7 +4,7 @@ local search = require("search")
 local labels = require("labels")
 local win = require("win")
 
-function start_search()
+local function start_search()
     local matches = {}
     local labeled_matches = {}
     local prompt_error = false
@@ -12,6 +12,8 @@ function start_search()
     local prompt = ui.prompt()
     local dim = ui.dim()
     local highlight = ui.highlight()
+
+    local label = labels.label()
 
     dim.content()
 
@@ -29,6 +31,7 @@ function start_search()
                 return nil
             end
 
+            -- jump to the best match and begin regular search
             if char == input.keys.CR then
                 if matches[1] ~= nil then
                     win.jump_to_pos(matches[1])
@@ -38,6 +41,7 @@ function start_search()
                 return nil
             end
 
+            -- go to the label
             if labeled_matches[char] ~= nil then
                 local match = labeled_matches[char]
                 win.jump_to_pos(match)
@@ -57,11 +61,10 @@ function start_search()
                 prompt_error = true
             else
                 highlight.matches(matches, query)
-
-                labeled_matches = labels.label_matches(matches, query)
-                highlight.labels(labeled_matches, query)
-
                 highlight.cursor(matches[1])
+
+                labeled_matches = label.matches(matches, query)
+                highlight.labels(labeled_matches, query)
             end
         end
     )

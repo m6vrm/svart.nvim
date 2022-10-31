@@ -1,11 +1,11 @@
 local buf = require("buf")
 local win = require("win")
 
-function get_search_pattern(query)
+local function get_search_regex(query)
     return "\\V" .. vim.fn.escape(query, "\\")
 end
 
-function directional_search(query, backwards, bounds)
+local function directional_search(query, backwards, bounds)
     if query == "" then
         return function () return nil end
     end
@@ -16,8 +16,8 @@ function directional_search(query, backwards, bounds)
     local saved_view_state = win.save_view_state()
 
     return function ()
-        local pattern = get_search_pattern(query) .. "\\_."
-        local match = vim.fn.searchpos(pattern, search_flags, search_stopline)
+        local regex = get_search_regex(query) .. "\\_."
+        local match = vim.fn.searchpos(regex, search_flags, search_stopline)
 
         if match[1] == 0 and match[2] == 0 then
             saved_view_state.restore()
@@ -28,20 +28,20 @@ function directional_search(query, backwards, bounds)
     end
 end
 
-function regular(query)
+local function regular(query)
     if query == "" then
         return
     end
 
     local saved_view_state = win.save_view_state()
-    local pattern = get_search_pattern(query)
+    local regex = get_search_regex(query)
 
-    vim.cmd("/" .. pattern)
+    vim.cmd("/" .. regex)
 
     saved_view_state.restore()
 end
 
-function matches(query)
+local function matches(query)
     local bounds = buf.get_visible_bounds()
     local matches = {}
 

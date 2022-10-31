@@ -4,13 +4,13 @@ local win = require("win")
 local highlight_namespace = vim.api.nvim_create_namespace("svart-highlight")
 local dim_namespace = vim.api.nvim_create_namespace("svart-dim")
 
-function highlight_cursor(namespace, highlight_group, pos)
+local function highlight_cursor(namespace, highlight_group, pos)
     local pos = pos or win.get_cursor_pos()
     local char = buf.get_char_at_pos(pos)
 
     vim.api.nvim_buf_set_extmark(
         0,
-        dim_namespace,
+        namespace,
         pos[1] - 1,
         pos[2] - 1,
         {
@@ -20,7 +20,7 @@ function highlight_cursor(namespace, highlight_group, pos)
     )
 end
 
-function prompt()
+local function prompt()
     return {
         show = function (query, error)
             local highlight_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
@@ -32,7 +32,7 @@ function prompt()
     }
 end
 
-function dim()
+local function dim()
     local bounds = buf.get_visible_bounds()
 
     return {
@@ -58,14 +58,15 @@ function dim()
     }
 end
 
-function highlight()
+local function highlight()
     local bounds = buf.get_visible_bounds()
 
     return {
         matches = function (matches, query)
             local query_len = query:len()
+            local match = matches[1]
 
-            for i, match in ipairs(matches) do
+            if match ~= nil then
                 vim.api.nvim_buf_add_highlight(
                     0,
                     highlight_namespace,
@@ -84,7 +85,7 @@ function highlight()
                     0,
                     highlight_namespace,
                     match[1] - 1,
-                    match[2] + query_len - 1,
+                    match[2] - 1, -- + query_len
                     {
                         virt_text = { { label, "SvartLabel" } },
                         virt_text_pos = "overlay"
@@ -106,7 +107,7 @@ function highlight()
     }
 end
 
-function redraw()
+local function redraw()
     vim.cmd.redraw()
 end
 

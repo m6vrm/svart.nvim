@@ -9,7 +9,7 @@ local keys = {
     C_W = replace_termcodes("<C-W>"),
 }
 
-function wait_for_input(get_char, input_handler)
+local function wait_for_input(get_char, input_handler)
     local input = ""
 
     while true do
@@ -22,8 +22,8 @@ function wait_for_input(get_char, input_handler)
         if char == keys.BS then
             input = input:sub(1, -2)
         elseif char == keys.C_W then
-            local delete_prev_word_regex = [=[\v[[:keyword:]]\zs[^[:keyword:]]+$|[[:keyword:]]+$]=]
-            input = vim.fn.substitute(input, delete_prev_word_regex, "", "")
+            local delete_last_word_regex = [=[\v[[:keyword:]]\zs[^[:keyword:]]+$|[[:keyword:]]+$]=]
+            input = vim.fn.substitute(input, delete_last_word_regex, "", "")
         else
             input = input .. char
         end

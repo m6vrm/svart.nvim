@@ -1,4 +1,4 @@
-function save_view_state()
+local function save_view_state()
     local view = vim.fn.winsaveview()
 
     return {
@@ -8,11 +8,11 @@ function save_view_state()
     }
 end
 
-function jump_to_pos(pos)
+local function jump_to_pos(pos)
     vim.api.nvim_win_set_cursor(0, { pos[1], pos[2] - 1 })
 end
 
-function get_cursor_pos()
+local function get_cursor_pos()
     local pos = vim.api.nvim_win_get_cursor(0)
     return { pos[1], pos[2] + 1 }
 end
