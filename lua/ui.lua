@@ -4,11 +4,27 @@ local win = require("win")
 local highlight_namespace = vim.api.nvim_create_namespace("svart-highlight")
 local dim_namespace = vim.api.nvim_create_namespace("svart-dim")
 
+function highlight_cursor(namespace, highlight_group, pos)
+    local pos = pos or win.get_cursor_pos()
+    local char = buf.get_char_at_pos(pos)
+
+    vim.api.nvim_buf_set_extmark(
+        0,
+        dim_namespace,
+        pos[1] - 1,
+        pos[2] - 1,
+        {
+            virt_text = { { char or " ", highlight_group} },
+            virt_text_pos = "overlay"
+        }
+    )
+end
+
 function prompt()
     return {
         show = function (query, error)
             local highlight_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
-            vim.api.nvim_echo({ { "svart> " }, { query, highlight_group} }, false, {})
+            vim.api.nvim_echo({ { "svart> " }, { query, highlight_group} }, false, {})
         end,
         clear = function ()
             vim.api.nvim_echo({}, false, {})
@@ -24,10 +40,12 @@ function dim()
             vim.highlight.range(
                 0,
                 dim_namespace,
-                "SvartDim",
+                "SvartDimmedContent",
                 { bounds.top - 1, 0 },
                 { bounds.bottom - 1, -1 }
             )
+
+            highlight_cursor(dim_namespace, "SvartDimmedCursor")
         end,
         clear = function ()
             vim.api.nvim_buf_clear_namespace(
@@ -75,20 +93,7 @@ function highlight()
             end
         end,
         cursor = function (pos)
-            local pos = pos or win.get_cursor_pos()
-            local char = buf.get_char_at_pos(pos)
-            local highlight_group = pos and "SvartSearchCursor" or "SvartCurrentCursor"
-
-            vim.api.nvim_buf_set_extmark(
-                0,
-                highlight_namespace,
-                pos[1] - 1,
-                pos[2] - 1,
-                {
-                    virt_text = { { char or " ", highlight_group } },
-                    virt_text_pos = "overlay"
-                }
-            )
+            highlight_cursor(highlight_namespace, "SvartSearchCursor", pos)
         end,
         clear = function ()
             vim.api.nvim_buf_clear_namespace(

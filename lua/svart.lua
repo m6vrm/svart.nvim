@@ -19,7 +19,6 @@ function start_search()
         -- get char
         function (query)
             prompt.show(query, prompt_error)
-            highlight.cursor()
             ui.redraw()
 
             local char = vim.fn.getcharstr()
