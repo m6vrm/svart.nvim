@@ -1,3 +1,5 @@
+require("svart.table")
+
 local input = require("svart.input")
 local ui = require("svart.ui")
 local search = require("svart.search")
@@ -13,23 +15,19 @@ local function start_search()
     local dim = ui.dim()
     local highlight = ui.highlight()
 
-    local label = labels.label()
+    local marker = labels.make_marker()
 
     dim.content()
 
     input.wait_for_input(
-        -- get char
-        function (query)
-            prompt.show(query, prompt_error)
+        -- get char (return nil = break)
+        function (query, label)
+            prompt.show(query, label, prompt_error)
             ui.redraw()
 
             local char = vim.fn.getcharstr()
 
             highlight.clear()
-
-            if char == input.keys.ESC then
-                return nil
-            end
 
             -- jump to the best match and begin regular search
             if char == input.keys.CR then
@@ -41,17 +39,21 @@ local function start_search()
                 return nil
             end
 
-            -- go to the label
-            if labeled_matches[char] ~= nil then
-                local match = labeled_matches[char]
-                win.jump_to_pos(match)
+            if char == input.keys.ESC then
                 return nil
             end
 
             return char
         end,
-        -- input handler
-        function (query)
+        -- input handler (return false = break, true = continue)
+        function (query, label)
+            -- go to the label
+            if labeled_matches[label] ~= nil then
+                local match = labeled_matches[label]
+                win.jump_to_pos(match)
+                return false
+            end
+
             labeled_matches = {}
             prompt_error = false
 
@@ -63,10 +65,14 @@ local function start_search()
                 highlight.matches(matches, query)
                 highlight.cursor(matches[1])
 
-                labeled_matches = label.matches(matches, query)
+                labeled_matches = marker.label_matches(matches, query)
                 highlight.labels(labeled_matches, query)
             end
-        end
+
+            return true
+        end,
+        -- get labels
+        function () return table.keys(labeled_matches) end
     )
 
     dim.clear()

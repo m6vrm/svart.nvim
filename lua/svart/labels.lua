@@ -1,71 +1,119 @@
+require("svart.table")
+
 local buf = require("svart.buf")
-
-local function escape_char(char)
-    return char:lower():gsub("%p", "%%%1")
-end
-
-local function drop_char(string, char)
-    local pattern = escape_char(char)
-    return string:gsub(pattern, "")
-end
-
-local function find_char(string, char)
-    if char == nil or char == "" then
-        return false
-    end
-
-    local pattern = escape_char(char)
-    return string:find(pattern)
-end
 
 local function is_new_query(query, last_query)
     return query ~= last_query
-        and last_query:sub(1, query:len()) ~= query
-        and query:sub(1, last_query:len()) ~= last_query
+       and last_query:sub(1, query:len()) ~= query
+       and query:sub(1, last_query:len()) ~= last_query
 end
 
-local function label()
+local function generate_labels(min_count, max_len)
+    local labels = { "j", "f", "k", "d", "l", "s", "a", "h", "g", "n", "u", "v", "r", "b", "y", "t", "m", "i", "c", "e", "o", "x", "w", "p", "q", "z" }
+    local prefix = ""
+
+    while true do
+        if prefix:len() >= max_len - 1 then
+            break
+        end
+
+        if #labels >= min_count then
+            break
+        end
+
+        prefix = prefix .. table.remove(labels, 1)
+
+        local prefixed_labels = {}
+        for _, label in ipairs(labels) do
+            table.insert(prefixed_labels, prefix .. label)
+        end
+
+        for _, label in ipairs(prefixed_labels) do
+            table.insert(labels, label)
+        end
+    end
+
+    return labels
+end
+
+function sort_matches(matches)
+    -- sort matches by distance to the middle line
+    local visible_bounds = buf.get_visible_bounds()
+    local middle_line = math.floor(visible_bounds.top + (visible_bounds.bottom - visible_bounds.top) / 2)
+
+    table.sort(matches, function (m1, m2)
+        local d1 = math.abs(m1[1] - middle_line)
+        local d2 = math.abs(m2[1] - middle_line)
+
+        if d1 ~= d2 then return d1 < d2 end
+        if m1[1] ~= m2[1] then return m1[1] < m2[1] end
+        return m1[2] < m2[2]
+    end)
+end
+
+function discard_colliding_labels(matches, labels, query_len)
+    for _, match in ipairs(matches) do
+        local line = buf.get_line(match[1])
+        local next_char = line:sub(match[2] + query_len, match[2] + query_len)
+
+        for i, label in ipairs(labels) do
+            if label:sub(1, 1) == next_char then
+                table.remove(labels, i)
+            end
+        end
+    end
+end
+
+function label_matches(matches, labels, labels_index)
+    local labeled_matches = {}
+
+    for _, match in ipairs(matches) do
+        local index_key = table.concat(match, ":")
+        local label = labels_index[index_key]
+
+        local label_key = table.key(labels, label)
+        if label_key == nil then
+            -- if cached label doesn't exists in the allowed labels list,
+            -- take a new one from beginning
+            label = table.remove(labels, 1)
+            labels_index[index_key] = label
+        else
+            -- remove used cached label from the allowed labels list
+            table.remove(labels, label_key)
+        end
+
+        if label ~= nil then
+            labeled_matches[label] = match
+        end
+    end
+
+    return labeled_matches
+end
+
+local function make_marker()
     local last_query = ""
     local labels_index = {}
 
     return {
-        matches = function (matches, query)
+        label_matches = function (matches, query)
             if is_new_query(query, last_query) then
                 labels_index = {}
             end
 
             last_query = query
 
+            local matches = { unpack(matches) }
             local query_len = query:len()
-            local available_labels = "jfkdlsahgnuvrbytmiceoxwpqz[];'\\,./1234567890-="
+            local labels = generate_labels(#matches, 2)
 
-            -- discard labels that collide with next char in any match
-            for i, match in ipairs(matches) do
-                local next_char = buf.get_char_at_pos({ match[1], match[2] + query_len })
-                available_labels = drop_char(available_labels, next_char)
-            end
+            sort_matches(matches)
+            discard_colliding_labels(matches, labels, query_len)
 
-            local labeled_matches = {}
-
-            -- get label from cached index or from available labels pool
-            for i, match in ipairs(matches) do
-                local index_key = table.concat(match, ":")
-                local label = labels_index[index_key]
-
-                if not find_char(available_labels, label) then
-                    label = available_labels:sub(1, 1)
-                    labels_index[index_key] = label
-                end
-
-                available_labels = drop_char(available_labels, label)
-                labeled_matches[label] = match
-            end
-
-            return labeled_matches
+            return label_matches(matches, labels, labels_index)
         end,
     }
 end
 
 return {
-    label = label,
+    make_marker = make_marker,
 }

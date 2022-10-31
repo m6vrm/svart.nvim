@@ -22,9 +22,10 @@ end
 
 local function prompt()
     return {
-        show = function (query, error)
+        show = function (query, label, error)
             local highlight_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
-            vim.api.nvim_echo({ { "svart> " }, { query, highlight_group} }, false, {})
+            local gap = label == "" and "" or " "
+            vim.api.nvim_echo({ { "svart> " }, { query, highlight_group }, { gap .. label } }, false, {})
         end,
         clear = function ()
             vim.api.nvim_echo({}, false, {})
@@ -64,9 +65,8 @@ local function highlight()
     return {
         matches = function (matches, query)
             local query_len = query:len()
-            local match = matches[1]
 
-            if match ~= nil then
+            for _, match in ipairs(matches) do
                 vim.api.nvim_buf_add_highlight(
                     0,
                     highlight_namespace,
@@ -81,16 +81,23 @@ local function highlight()
             local query_len = query:len()
 
             for label, match in pairs(labeled_matches) do
-                vim.api.nvim_buf_set_extmark(
-                    0,
-                    highlight_namespace,
-                    match[1] - 1,
-                    match[2] - 1, -- + query_len
-                    {
-                        virt_text = { { label, "SvartLabel" } },
-                        virt_text_pos = "overlay"
-                    }
-                )
+                local i = 0
+
+                for char in label:gmatch(".") do
+                    vim.api.nvim_buf_set_extmark(
+                        0,
+                        highlight_namespace,
+                        match[1] - 1,
+                        match[2] - 1 + query_len + i,
+                        {
+                            strict = false,
+                            virt_text = { { char, "SvartLabel" } },
+                            virt_text_pos = "overlay",
+                        }
+                    )
+
+                    i = i + 1
+                end
             end
         end,
         cursor = function (pos)
