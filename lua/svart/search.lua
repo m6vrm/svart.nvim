@@ -1,5 +1,5 @@
-local buf = require("buf")
-local win = require("win")
+local buf = require("svart.buf")
+local win = require("svart.win")
 
 local function get_search_regex(query)
     return "\\V" .. vim.fn.escape(query, "\\")
@@ -41,6 +41,7 @@ local function regular(query)
     saved_view_state.restore()
 end
 
+-- first match = best match
 local function matches(query)
     local bounds = buf.get_visible_bounds()
     local matches = {}

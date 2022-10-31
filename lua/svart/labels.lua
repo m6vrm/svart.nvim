@@ -1,4 +1,4 @@
-local buf = require("buf")
+local buf = require("svart.buf")
 
 local function escape_char(char)
     return char:lower():gsub("%p", "%%%1")

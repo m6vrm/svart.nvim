@@ -21,7 +21,7 @@ Tested on Neovim 0.8.0.
 **Default keymaps**
 
 ```lua
-vim.keymap.set({ "n", "v" }, "s", function () require("svart").search() end, { silent = true })
+vim.keymap.set({ "n", "v" }, "s", function () require("svart.svart").search() end, { silent = true })
 ```
 
 **Default highlight groups**

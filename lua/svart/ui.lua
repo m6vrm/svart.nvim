@@ -1,5 +1,5 @@
-local buf = require("buf")
-local win = require("win")
+local buf = require("svart.buf")
+local win = require("svart.win")
 
 local highlight_namespace = vim.api.nvim_create_namespace("svart-highlight")
 local dim_namespace = vim.api.nvim_create_namespace("svart-dim")

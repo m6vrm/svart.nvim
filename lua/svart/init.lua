@@ -1,8 +1,8 @@
-local input = require("input")
-local ui = require("ui")
-local search = require("search")
-local labels = require("labels")
-local win = require("win")
+local input = require("svart.input")
+local ui = require("svart.ui")
+local search = require("svart.search")
+local labels = require("svart.labels")
+local win = require("svart.win")
 
 local function start_search()
     local matches = {}
