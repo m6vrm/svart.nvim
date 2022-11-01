@@ -1,10 +1,13 @@
 local buf = require("svart.buf")
 local win = require("svart.win")
 
-local highlight_namespace = vim.api.nvim_create_namespace("svart-highlight")
+local search_namespace = vim.api.nvim_create_namespace("svart-search")
 local dim_namespace = vim.api.nvim_create_namespace("svart-dim")
 
-local function highlight_cursor(namespace, highlight_group, pos)
+local function highlight_cursor(pos)
+    local namespace = pos and search_namespace or dim_namespace
+    local highlight_group = pos and "SvartSearchCursor" or "SvartDimmedCursor"
+
     local pos = pos or win.get_cursor_pos()
     local char = buf.get_char_at_pos(pos)
 
@@ -46,7 +49,7 @@ local function dim()
                 { bounds.bottom - 1, -1 }
             )
 
-            highlight_cursor(dim_namespace, "SvartDimmedCursor")
+            highlight_cursor()
         end,
         clear = function ()
             vim.api.nvim_buf_clear_namespace(
@@ -69,7 +72,7 @@ local function highlight()
             for _, match in ipairs(matches) do
                 vim.api.nvim_buf_add_highlight(
                     0,
-                    highlight_namespace,
+                    search_namespace,
                     "SvartSearch",
                     match[1] - 1,
                     match[2] - 1,
@@ -86,7 +89,7 @@ local function highlight()
                 for char in label:gmatch(".") do
                     vim.api.nvim_buf_set_extmark(
                         0,
-                        highlight_namespace,
+                        search_namespace,
                         match[1] - 1,
                         match[2] - 1 + query_len + i,
                         {
@@ -101,12 +104,12 @@ local function highlight()
             end
         end,
         cursor = function (pos)
-            highlight_cursor(highlight_namespace, "SvartSearchCursor", pos)
+            highlight_cursor(pos)
         end,
         clear = function ()
             vim.api.nvim_buf_clear_namespace(
                 0,
-                highlight_namespace,
+                search_namespace,
                 bounds.top - 1,
                 bounds.bottom
             )

@@ -1,3 +1,5 @@
+local utils = require("svart.utils")
+
 local function replace_termcodes(string)
     return vim.api.nvim_replace_termcodes(string, true, false, true)
 end
@@ -13,12 +15,12 @@ local function detect_label(char, last_label, labels)
     for _, label in ipairs(labels) do
         local prefix = last_label .. char
 
-        if label:sub(1, prefix:len()) == prefix then
-            return nil, prefix
+        if utils.string_prefix(label, prefix) then
+            return prefix
         end
     end
 
-    return char, last_label
+    return last_label
 end
 
 local function wait_for_input(get_char, input_handler, get_labels)
@@ -33,7 +35,7 @@ local function wait_for_input(get_char, input_handler, get_labels)
         end
 
         local labels = get_labels()
-        char, label = detect_label(char, label, labels)
+        label = detect_label(char, label, labels)
 
         if char == keys.BS then
             if label ~= "" then
@@ -49,7 +51,7 @@ local function wait_for_input(get_char, input_handler, get_labels)
             else
                 query = vim.fn.substitute(query, delete_word_regex, "", "")
             end
-        elseif char ~= nil then
+        elseif label == "" then
             query = query .. char
         end
 

@@ -1,4 +1,6 @@
-function table.key(table, element)
+local M = {}
+
+function M.table_key(table, element)
     if element == nil or element == "" then
         return nil
     end
@@ -12,7 +14,7 @@ function table.key(table, element)
     return nil
 end
 
-function table.keys(table_)
+function M.table_keys(table_)
     local keys = {}
 
     for key, _ in pairs(table_) do
@@ -21,3 +23,10 @@ function table.keys(table_)
 
     return keys
 end
+
+function M.string_prefix(string, prefix)
+    return string == prefix
+        or string:sub(1, prefix:len()) == prefix
+end
+
+return M

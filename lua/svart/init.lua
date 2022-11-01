@@ -1,5 +1,4 @@
-require("svart.table")
-
+local utils = require("svart.utils")
 local input = require("svart.input")
 local ui = require("svart.ui")
 local search = require("svart.search")
@@ -9,7 +8,7 @@ local win = require("svart.win")
 local function start_search()
     local matches = {}
     local labeled_matches = {}
-    local prompt_error = false
+    local no_matches = false
 
     local prompt = ui.prompt()
     local dim = ui.dim()
@@ -22,7 +21,7 @@ local function start_search()
     input.wait_for_input(
         -- get char (return nil = break)
         function (query, label)
-            prompt.show(query, label, prompt_error)
+            prompt.show(query, label, no_matches)
             ui.redraw()
 
             local char = vim.fn.getcharstr()
@@ -54,25 +53,19 @@ local function start_search()
                 return false
             end
 
-            labeled_matches = {}
-            prompt_error = false
-
             matches = search.matches(query)
+            no_matches = #matches == 0
 
-            if #matches == 0 then
-                prompt_error = true
-            else
-                highlight.matches(matches, query)
-                highlight.cursor(matches[1])
+            highlight.matches(matches, query)
+            highlight.cursor(matches[1])
 
-                labeled_matches = marker.label_matches(matches, query)
-                highlight.labels(labeled_matches, query)
-            end
+            labeled_matches = marker.label_matches(matches, query, label)
+            highlight.labels(labeled_matches, query)
 
             return true
         end,
         -- get labels
-        function () return table.keys(labeled_matches) end
+        function () return utils.table_keys(labeled_matches) end
     )
 
     dim.clear()

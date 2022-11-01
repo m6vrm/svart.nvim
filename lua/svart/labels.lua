@@ -1,11 +1,9 @@
-require("svart.table")
-
+local utils = require("svart.utils")
 local buf = require("svart.buf")
 
 local function is_new_query(query, last_query)
-    return query ~= last_query
-       and last_query:sub(1, query:len()) ~= query
-       and query:sub(1, last_query:len()) ~= last_query
+    return not utils.string_prefix(query, last_query)
+       and not utils.string_prefix(last_query, query)
 end
 
 local function generate_labels(min_count, max_len)
@@ -21,7 +19,7 @@ local function generate_labels(min_count, max_len)
             break
         end
 
-        prefix = prefix .. table.remove(labels, 1)
+        prefix = table.remove(labels, 1)
 
         local prefixed_labels = {}
         for _, label in ipairs(labels) do
@@ -51,7 +49,9 @@ function sort_matches(matches)
     end)
 end
 
-function discard_colliding_labels(matches, labels, query_len)
+function discard_colliding_labels(matches, labels, query)
+    local query_len = query:len()
+
     for _, match in ipairs(matches) do
         local line = buf.get_line(match[1])
         local next_char = line:sub(match[2] + query_len, match[2] + query_len)
@@ -64,6 +64,14 @@ function discard_colliding_labels(matches, labels, query_len)
     end
 end
 
+function discard_irrelevant_labeled_matches(labeled_matches, current_label)
+    for label, _ in pairs(labeled_matches) do
+        if not utils.string_prefix(label, current_label) then
+            labeled_matches[label] = nil
+        end
+    end
+end
+
 function label_matches(matches, labels, labels_index)
     local labeled_matches = {}
 
@@ -71,7 +79,7 @@ function label_matches(matches, labels, labels_index)
         local index_key = table.concat(match, ":")
         local label = labels_index[index_key]
 
-        local label_key = table.key(labels, label)
+        local label_key = utils.table_key(labels, label)
         if label_key == nil then
             -- if cached label doesn't exists in the allowed labels list,
             -- take a new one from beginning
@@ -95,21 +103,27 @@ local function make_marker()
     local labels_index = {}
 
     return {
-        label_matches = function (matches, query)
+        label_matches = function (matches, query, label)
             if is_new_query(query, last_query) then
                 labels_index = {}
             end
 
             last_query = query
 
+            if query:len() < 1 then
+                return {}
+            end
+
             local matches = { unpack(matches) }
-            local query_len = query:len()
-            local labels = generate_labels(#matches, 2)
+            local labels = generate_labels(#matches, 3)
 
             sort_matches(matches)
-            discard_colliding_labels(matches, labels, query_len)
 
-            return label_matches(matches, labels, labels_index)
+            discard_colliding_labels(matches, labels, query)
+
+            labeled_matches = label_matches(matches, labels, labels_index)
+            discard_irrelevant_labeled_matches(labeled_matches, label)
+            return labeled_matches
         end,
     }
 end
