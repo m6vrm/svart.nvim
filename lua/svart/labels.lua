@@ -35,27 +35,28 @@ local function generate_labels(min_count, max_len)
     return labels
 end
 
-function sort_matches(matches)
+local function sort_matches(matches)
     -- sort matches by distance to the middle line
     local visible_bounds = buf.get_visible_bounds()
     local middle_line = math.floor(visible_bounds.top + (visible_bounds.bottom - visible_bounds.top) / 2)
 
-    table.sort(matches, function (m1, m2)
-        local d1 = math.abs(m1[1] - middle_line)
-        local d2 = math.abs(m2[1] - middle_line)
+    table.sort(matches, function(match1, match2)
+        local dist1 = math.abs(match1[1] - middle_line)
+        local dist2 = math.abs(match2[1] - middle_line)
 
-        if d1 ~= d2 then return d1 < d2 end
-        if m1[1] ~= m2[1] then return m1[1] < m2[1] end
-        return m1[2] < m2[2]
+        if dist1 ~= dist2 then return dist1 < dist2 end
+        if match1[1] ~= match2[1] then return match1[1] < match2[1] end
+        return match1[2] < match2[2]
     end)
 end
 
-function discard_colliding_labels(matches, labels, query)
+local function discard_colliding_labels(matches, labels, query)
     local query_len = query:len()
 
     for _, match in ipairs(matches) do
-        local line = buf.get_line(match[1])
-        local next_char = line:sub(match[2] + query_len, match[2] + query_len)
+        local line_nr, col = unpack(match)
+        local line = buf.get_line(line_nr)
+        local next_char = line:sub(col + query_len, col + query_len):lower()
 
         for i, label in ipairs(labels) do
             if label:sub(1, 1) == next_char then
@@ -65,7 +66,7 @@ function discard_colliding_labels(matches, labels, query)
     end
 end
 
-function discard_irrelevant_labeled_matches(labeled_matches, current_label)
+local function discard_irrelevant_labeled_matches(labeled_matches, current_label)
     for label, _ in pairs(labeled_matches) do
         if not utils.string_prefix(label, current_label) then
             labeled_matches[label] = nil
@@ -73,7 +74,7 @@ function discard_irrelevant_labeled_matches(labeled_matches, current_label)
     end
 end
 
-function label_matches(matches, labels, labels_index)
+local function label_matches(matches, labels, labels_index)
     local labeled_matches = {}
 
     for _, match in ipairs(matches) do
@@ -93,6 +94,8 @@ function label_matches(matches, labels, labels_index)
 
         if label ~= nil then
             labeled_matches[label] = match
+        else
+            labeled_matches["x" .. index_key] = match
         end
     end
 
@@ -104,10 +107,11 @@ local function make_marker()
     local labels_index = {}
 
     return {
-        label_matches = function (matches, query, label)
+        label_matches = function(matches, query, label)
             if is_new_query(query, last_query) then
                 labels_index = {}
             end
+            labels_index = {}
 
             last_query = query
 
@@ -121,7 +125,7 @@ local function make_marker()
             sort_matches(matches)
             discard_colliding_labels(matches, labels, query)
 
-            labeled_matches = label_matches(matches, labels, labels_index)
+            local labeled_matches = label_matches(matches, labels, labels_index)
 
             if config.label_hide_irrelevant then
                 discard_irrelevant_labeled_matches(labeled_matches, label)

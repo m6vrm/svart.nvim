@@ -7,7 +7,7 @@ end
 
 local function directional_search(query, backwards, bounds)
     if query == "" then
-        return function () return nil end
+        return function() return nil end
     end
 
     local search_flags = backwards and "b" or ""
@@ -15,11 +15,12 @@ local function directional_search(query, backwards, bounds)
 
     local saved_view_state = win.save_view_state()
 
-    return function ()
+    return function()
         local regex = get_search_regex(query) .. "\\_."
         local match = vim.fn.searchpos(regex, search_flags, search_stopline)
+        local line, col = unpack(match)
 
-        if match[1] == 0 and match[2] == 0 then
+        if line == 0 and col == 0 then
             saved_view_state.restore()
             return nil
         end

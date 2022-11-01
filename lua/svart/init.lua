@@ -12,7 +12,7 @@ local function setup(overrides)
     end
 end
 
-local function begin_search()
+local function start()
     local matches = {}
     local labeled_matches = {}
     local no_matches = false
@@ -27,7 +27,7 @@ local function begin_search()
 
     input.wait_for_input(
         -- get char (return nil = break)
-        function (query, label)
+        function(query, label)
             prompt.show(query, label, no_matches)
             ui.redraw()
 
@@ -52,7 +52,7 @@ local function begin_search()
             return char
         end,
         -- input handler (return false = break, true = continue)
-        function (query, label)
+        function(query, label)
             -- go to the label
             if labeled_matches[label] ~= nil then
                 local match = labeled_matches[label]
@@ -72,14 +72,18 @@ local function begin_search()
             return true
         end,
         -- get labels
-        function () return utils.table_keys(labeled_matches) end
+        function() return utils.table_keys(labeled_matches) end
     )
 
     dim.clear()
     prompt.clear()
 end
 
+function do_repeat()
+end
+
 return {
     setup = setup,
-    begin_search = begin_search,
+    start = start,
+    do_repeat = do_repeat,
 }

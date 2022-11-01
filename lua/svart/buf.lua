@@ -10,8 +10,9 @@ local function get_line(line_nr)
 end
 
 local function get_char_at_pos(pos)
-    local line = get_line(pos[1])
-    return line:sub(pos[2], pos[2])
+    local line_nr, col = unpack(pos)
+    local line = get_line(line_nr)
+    return line:sub(col, col)
 end
 
 return {
