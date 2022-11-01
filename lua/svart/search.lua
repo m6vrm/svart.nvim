@@ -28,7 +28,7 @@ local function directional_search(query, backwards, bounds)
     end
 end
 
-local function regular(query)
+local function begin_regular_search(query)
     if query == "" then
         return
     end
@@ -41,8 +41,7 @@ local function regular(query)
     saved_view_state.restore()
 end
 
--- first match = best match
-local function matches(query)
+local function get_matches(query)
     local bounds = buf.get_visible_bounds()
     local matches = {}
 
@@ -58,6 +57,6 @@ local function matches(query)
 end
 
 return {
-    regular = regular,
-    matches = matches,
+    begin_regular_search = begin_regular_search,
+    get_matches = get_matches,
 }

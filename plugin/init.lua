@@ -12,4 +12,4 @@ for key, value in pairs(highlights) do
     vim.api.nvim_set_hl(0, key, value)
 end
 
-vim.keymap.set({ "n", "v" }, "s", function () require("svart").start_search() end, { silent = true })
+vim.keymap.set({ "n", "v" }, "s", function () require("svart").begin_search() end, { silent = true })

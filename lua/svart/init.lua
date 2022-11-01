@@ -5,7 +5,7 @@ local search = require("svart.search")
 local labels = require("svart.labels")
 local win = require("svart.win")
 
-local function start_search()
+local function begin_search()
     local matches = {}
     local labeled_matches = {}
     local no_matches = false
@@ -32,7 +32,7 @@ local function start_search()
             if char == input.keys.CR then
                 if matches[1] ~= nil then
                     win.jump_to_pos(matches[1])
-                    search.regular(query)
+                    search.begin_regular_search(query)
                 end
 
                 return nil
@@ -53,7 +53,7 @@ local function start_search()
                 return false
             end
 
-            matches = search.matches(query)
+            matches = search.get_matches(query)
             no_matches = #matches == 0
 
             highlight.matches(matches, query)
@@ -73,5 +73,5 @@ local function start_search()
 end
 
 return {
-    start_search = start_search,
+    begin_search = begin_search,
 }
