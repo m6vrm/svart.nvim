@@ -1,3 +1,4 @@
+local config = require("svart.config")
 local utils = require("svart.utils")
 local buf = require("svart.buf")
 
@@ -7,7 +8,7 @@ local function is_new_query(query, last_query)
 end
 
 local function generate_labels(min_count, max_len)
-    local labels = { "j", "f", "k", "d", "l", "s", "a", "h", "g", "n", "u", "v", "r", "b", "y", "t", "m", "i", "c", "e", "o", "x", "w", "p", "q", "z" }
+    local labels = { unpack(config.labels) }
     local prefix = ""
 
     while true do
@@ -110,19 +111,22 @@ local function make_marker()
 
             last_query = query
 
-            if query:len() < 1 then
+            if query:len() < config.label_min_query_len then
                 return {}
             end
 
             local matches = { unpack(matches) }
-            local labels = generate_labels(#matches, 3)
+            local labels = generate_labels(#matches, config.label_max_len)
 
             sort_matches(matches)
-
             discard_colliding_labels(matches, labels, query)
 
             labeled_matches = label_matches(matches, labels, labels_index)
-            discard_irrelevant_labeled_matches(labeled_matches, label)
+
+            if config.label_hide_irrelevant then
+                discard_irrelevant_labeled_matches(labeled_matches, label)
+            end
+
             return labeled_matches
         end,
     }

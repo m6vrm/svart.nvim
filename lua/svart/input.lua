@@ -1,3 +1,4 @@
+local config = require("svart.config")
 local utils = require("svart.utils")
 
 local function replace_termcodes(string)
@@ -5,10 +6,10 @@ local function replace_termcodes(string)
 end
 
 local keys = {
-    ESC = replace_termcodes("<Esc>"),
-    CR = replace_termcodes("<CR>"),
-    BS = replace_termcodes("<BS>"),
-    C_W = replace_termcodes("<C-W>"),
+    cancel = replace_termcodes(config.key_cancel),
+    best_match = replace_termcodes(config.key_best_match),
+    delete_char = replace_termcodes(config.key_delete_char),
+    delete_word = replace_termcodes(config.key_delete_word),
 }
 
 local function detect_label(char, last_label, labels)
@@ -37,13 +38,13 @@ local function wait_for_input(get_char, input_handler, get_labels)
         local labels = get_labels()
         label = detect_label(char, label, labels)
 
-        if char == keys.BS then
+        if char == keys.delete_char then
             if label ~= "" then
                 label = label:sub(1, -2)
             else
                 query = query:sub(1, -2)
             end
-        elseif char == keys.C_W then
+        elseif char == keys.delete_word then
             local delete_word_regex = [=[\v[[:keyword:]]\zs[^[:keyword:]]+$|[[:keyword:]]+$]=]
 
             if label ~= "" then

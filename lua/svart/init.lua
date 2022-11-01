@@ -1,9 +1,16 @@
+local config = require("svart.config")
 local utils = require("svart.utils")
 local input = require("svart.input")
 local ui = require("svart.ui")
 local search = require("svart.search")
 local labels = require("svart.labels")
 local win = require("svart.win")
+
+local function setup(overrides)
+    for key, value in pairs(overrides) do
+        config[key] = value
+    end
+end
 
 local function begin_search()
     local matches = {}
@@ -29,7 +36,7 @@ local function begin_search()
             highlight.clear()
 
             -- jump to the best match and begin regular search
-            if char == input.keys.CR then
+            if char == input.keys.best_match then
                 if matches[1] ~= nil then
                     win.jump_to_pos(matches[1])
                     search.begin_regular_search(query)
@@ -38,7 +45,7 @@ local function begin_search()
                 return nil
             end
 
-            if char == input.keys.ESC then
+            if char == input.keys.cancel then
                 return nil
             end
 
@@ -73,5 +80,6 @@ local function begin_search()
 end
 
 return {
+    setup = setup,
     begin_search = begin_search,
 }
