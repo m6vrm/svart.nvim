@@ -12,16 +12,16 @@ local keys = {
     delete_word = replace_termcodes(config.key_delete_word),
 }
 
-local function detect_label(char, last_label, labels)
+local function detect_label(char, prev_label, labels)
     for _, label in ipairs(labels) do
-        local prefix = last_label .. char
+        local prefix = prev_label .. char
 
         if utils.string_prefix(label, prefix) then
             return prefix
         end
     end
 
-    return last_label
+    return prev_label
 end
 
 local function wait_for_input(get_char, input_handler, get_labels)

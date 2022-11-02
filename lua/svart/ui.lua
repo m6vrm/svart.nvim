@@ -86,7 +86,7 @@ local function highlight()
         labels = function(labeled_matches, query)
             local query_len = query:len()
 
-            for label, match in pairs(labeled_matches) do
+            for label, match in labeled_matches.pairs() do
                 local line, col = unpack(match)
                 local i = 0
 

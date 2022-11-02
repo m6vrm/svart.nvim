@@ -14,7 +14,7 @@ end
 
 local function start()
     local matches = {}
-    local labeled_matches = {}
+    local labeled_matches = utils.make_bimap()
     local no_matches = false
 
     local prompt = ui.prompt()
@@ -54,8 +54,8 @@ local function start()
         -- input handler (return false = break, true = continue)
         function(query, label)
             -- go to the label
-            if labeled_matches[label] ~= nil then
-                local match = labeled_matches[label]
+            if labeled_matches.get_value(label) ~= nil then
+                local match = labeled_matches.get_value(label)
                 win.jump_to_pos(match)
                 return false
             end
@@ -72,7 +72,7 @@ local function start()
             return true
         end,
         -- get labels
-        function() return utils.table_keys(labeled_matches) end
+        function() return labeled_matches.keys() end
     )
 
     dim.clear()
