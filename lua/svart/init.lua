@@ -38,7 +38,7 @@ local function start()
             if char == input.keys.best_match then
                 if matches[1] ~= nil then
                     win.jump_to_pos(matches[1])
-                    search.begin_regular_search(query)
+                    search.regular_search(query)
                 end
 
                 return nil
@@ -59,7 +59,7 @@ local function start()
                 return false
             end
 
-            matches = search.matches(query)
+            matches = search.search(query)
 
             highlight.matches(matches, query)
             highlight.cursor(matches[1])

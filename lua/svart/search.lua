@@ -29,7 +29,7 @@ local function directional_search(query, backwards, bounds)
     end
 end
 
-local function begin_regular_search(query)
+local function regular_search(query)
     if query == "" then
         return
     end
@@ -42,7 +42,7 @@ local function begin_regular_search(query)
     saved_view_state.restore()
 end
 
-local function matches(query)
+local function search(query)
     local bounds = buf.visible_bounds()
     local matches = {}
 
@@ -58,6 +58,6 @@ local function matches(query)
 end
 
 return {
-    begin_regular_search = begin_regular_search,
-    matches = matches,
+    regular_search = regular_search,
+    search = search,
 }
