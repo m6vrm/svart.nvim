@@ -10,12 +10,13 @@ local function assert_eq(lhs, rhs, message)
     local rhs = vim.inspect(rhs)
 
     if lhs ~= rhs then
-        local message = message or "assertion failed"
+        local message = message or "assertion failed!"
         assert(false, message .. " ( " .. lhs .. " != " .. rhs .. " ) ")
     end
 end
 
 local function run()
+    test("svart.utils")
     test("svart.labels")
 end
 

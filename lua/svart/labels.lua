@@ -2,8 +2,8 @@ local config = require("svart.config")
 local utils = require("svart.utils")
 local buf = require("svart.buf")
 
-local function generate_labels(min_count, max_len)
-    return utils.make_bimap({ unpack(config.labels) })
+local function generate_labels(atoms, min_count, max_len)
+    return utils.make_bimap({ unpack(atoms) })
 end
 
 -- sort by the distance to the middle line
@@ -22,12 +22,10 @@ end
 
 -- remove labels that may conflict with next possible query char
 local function discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
-    local query_len = query:len()
-
     for _, match in ipairs(matches) do
         local line_nr, col = unpack(match)
         local line = buf.get_line(line_nr)
-        local next_char = line:sub(col + query_len, col + query_len):lower()
+        local next_char = line:sub(col + #query, col + #query):lower()
 
         for _, label in labels.pairs() do
             if label:sub(1, 1) == next_char then
@@ -42,15 +40,23 @@ local function label_matches(matches, labels, prev_labeled_matches, labeled_matc
     -- try to use labels from the previous matches
     for _, match in pairs(matches) do
         local label = prev_labeled_matches.get_key(match)
-        labels.remove_value(label)
-        labeled_matches.set(label, match)
+
+        if label ~= nil then
+            labels.remove_value(label)
+            labeled_matches.set(label, match)
+        end
     end
 
     -- then add new labels to remaining matches
     for _, match in pairs(matches) do
-        if labeled_matches.get_key(match) == nil then
+        local prev_label = labeled_matches.get_key(match)
+
+        if prev_label == nil then
             local label = labels.drop_first()
-            labeled_matches.set(label, match)
+
+            if label ~= nil then
+                labeled_matches.set(label, match)
+            end
         end
     end
 end
@@ -79,12 +85,12 @@ local function make_marker()
 
             history[query] = utils.make_bimap()
 
-            if query:len() < config.label_min_query_len then
+            if #query < config.label_min_query_len then
                 return history[query]
             end
 
             local matches = { unpack(matches) }
-            local labels = generate_labels(#matches, config.label_max_len)
+            local labels = generate_labels(config.label_atoms, #matches * 2, config.label_max_len)
 
             local prev_query = query:sub(1, -2)
             local prev_labeled_matches = history[prev_query] ~= nil
@@ -108,6 +114,16 @@ end
 
 local function test()
     local tests = require("svart.tests")
+
+    -- generate_labels
+    local _ = (function()
+        local atoms = { "a", "b", "c", "d" }
+        local labels = generate_labels(atoms, 1, 1)
+        tests.assert_eq(labels.get_values(), { "a", "b", "c", "d" })
+
+        labels = generate_labels(atoms, 6, 1)
+        tests.assert_eq(labels.get_values(), { "a", "b", "c", "d" })
+    end)()
 
     -- sort_matches
     local _ = (function()

@@ -68,9 +68,7 @@ local function highlight()
 
     return {
         matches = function(matches, query)
-            local query_len = query:len()
-
-            for _, match in ipairs(matches) do
+            for _, match in pairs(matches) do
                 local line, col = unpack(match)
 
                 vim.api.nvim_buf_add_highlight(
@@ -79,13 +77,11 @@ local function highlight()
                     "SvartMatch",
                     line - 1,
                     col - 1,
-                    col + query_len - 1
+                    col + #query - 1
                 )
             end
         end,
         labels = function(labeled_matches, query)
-            local query_len = query:len()
-
             for label, match in labeled_matches.pairs() do
                 local line, col = unpack(match)
                 local i = 0
@@ -95,7 +91,7 @@ local function highlight()
                         0,
                         search_namespace,
                         line - 1,
-                        col - 1 + query_len + i,
+                        col - 1 + #query + i,
                         {
                             strict = false,
                             virt_text = { { char, "SvartLabel" } },
