@@ -126,34 +126,34 @@ function M.test()
     local tests = require("svart.tests")
 
     -- keys
-    local _ = (function()
+    do
         local keys = M.keys({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#keys, 3)
 
         keys = M.keys({ "v1", "v2", "v3" })
         tests.assert_eq(keys, { 1, 2, 3 })
-    end)()
+    end
 
     -- values
-    local _ = (function()
+    do
         local values = M.values({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#values, 3)
 
         values = M.values({ "v1", "v2", "v3" })
         tests.assert_eq(values, { "v1", "v2", "v3" })
-    end)()
+    end
 
     -- string_prefix
-    local _ = (function()
+    do
         assert(M.string_prefix("hello", "hello"))
         assert(M.string_prefix("hello", "hell"))
         assert(M.string_prefix("hello", ""))
         assert(not M.string_prefix("", "hello"))
         assert(not M.string_prefix("hello", "ello"))
-    end)()
+    end
 
     -- make_bmap
-    local _ = (function()
+    do
         -- empty
         local bimap = M.make_bimap()
         tests.assert_eq(bimap.count(), 0)
@@ -217,7 +217,7 @@ function M.test()
         local bimap = M.make_bimap({ nil, 1, 2, nil, 3 })
         tests.assert_eq(bimap.count(), 3)
         tests.assert_eq(bimap.values(), { 1, 2, 3 })
-    end)()
+    end
 end
 
 return M

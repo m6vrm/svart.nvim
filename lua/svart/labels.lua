@@ -153,17 +153,17 @@ local function test()
     local tests = require("svart.tests")
 
     -- generate_labels
-    local _ = (function()
+    do
         local atoms = { "a", "b", "c", "d" }
         local labels = generate_labels(atoms, 1, 1)
         tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
 
         labels = generate_labels(atoms, 6, 1)
         tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
-    end)()
+    end
 
     -- sort_matches
-    local _ = (function()
+    do
         local bounds = { top = 1, bottom = 9 }
         local matches = { { 2, 1 }, { 5, 1 }, { 7, 1 } }
         sort_matches(matches, bounds)
@@ -176,10 +176,10 @@ local function test()
         sort_matches(matches, bounds)
         tests.assert_eq(matches[1][2], 1)
         tests.assert_eq(matches[2][2], 2)
-    end)()
+    end
 
     -- discard_conflicting_labels
-    local _ = (function()
+    do
         local labels = utils.make_bimap({ "a", "e", "in" })
         local matches = { { 1, 1 }, { 1, 6 } }
         local query = "l"
@@ -189,10 +189,10 @@ local function test()
         tests.assert_eq(labels.key("e"), nil)
         tests.assert_eq(labels.key("in"), nil)
         tests.assert_eq(prev_labeled_matches.key({ 1, 1 }), nil)
-    end)()
+    end
 
     -- label_matches
-    local _ = (function()
+    do
         local matches = { { 2, 1 }, { 5, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 } }
         local labels = utils.make_bimap({ "a", "b", "c" })
         local prev_labeled_matches = utils.make_bimap({ x = { 2, 1 }, c = { 9, 1 } })
@@ -203,17 +203,17 @@ local function test()
         tests.assert_eq(labeled_matches.value("b")[1], 7)
         tests.assert_eq(labeled_matches.value("c")[1], 9)
         tests.assert_eq(labeled_matches.key({ 8, 1 }), nil)
-    end)()
+    end
 
     -- discard_irrelevant_labeled_matches
-    local _ = (function()
+    do
         local labeled_matches = utils.make_bimap({ aa = { 2, 1 }, ba = { 3, 1 }, bb = { 1, 1 } })
         local current_label = "b"
         discard_irrelevant_labeled_matches(labeled_matches, current_label)
         tests.assert_eq(labeled_matches.value("aa"), nil)
         tests.assert_eq(labeled_matches.value("ba")[1], 3)
         tests.assert_eq(labeled_matches.value("bb")[1], 1)
-    end)()
+    end
 end
 
 return {
