@@ -3,7 +3,35 @@ local utils = require("svart.utils")
 local buf = require("svart.buf")
 
 local function generate_labels(atoms, min_count, max_len)
-    return utils.make_bimap({ unpack(atoms) })
+    local labels = utils.make_bimap({ unpack(atoms) })
+
+    while true do
+        local tail = {}
+
+        for _, label in labels.pairs() do
+            for _, atom in ipairs(atoms) do
+                if #label + #atom <= max_len and atom ~= label:sub(#atom) then
+                    table.insert(tail, atom .. label)
+                end
+            end
+        end
+
+        if next(tail) == nil then
+            break
+        end
+
+        for _, label in ipairs(tail) do
+            local prefix = label:sub(1, -2)
+            labels.remove_value(prefix)
+            labels.append(label)
+
+            if labels.count() >= min_count then
+                return labels
+            end
+        end
+    end
+
+    return labels
 end
 
 -- sort by the distance to the middle line
@@ -27,7 +55,15 @@ local function discard_conflicting_labels(labels, matches, query, prev_labeled_m
         local line = buf.get_line(line_nr)
         local next_char = line:sub(col + #query, col + #query):lower()
 
+        -- todo: refactor
         for _, label in labels.pairs() do
+            if label:sub(1, 1) == next_char then
+                labels.remove_value(label)
+                prev_labeled_matches.remove_key(label)
+            end
+        end
+
+        for label, _ in prev_labeled_matches.pairs() do
             if label:sub(1, 1) == next_char then
                 labels.remove_value(label)
                 prev_labeled_matches.remove_key(label)
@@ -38,7 +74,7 @@ end
 
 local function label_matches(matches, labels, prev_labeled_matches, labeled_matches)
     -- try to use labels from the previous matches
-    for _, match in pairs(matches) do
+    for _, match in ipairs(matches) do
         local label = prev_labeled_matches.get_key(match)
 
         if label ~= nil then
@@ -48,7 +84,7 @@ local function label_matches(matches, labels, prev_labeled_matches, labeled_matc
     end
 
     -- then add new labels to remaining matches
-    for _, match in pairs(matches) do
+    for _, match in ipairs(matches) do
         local prev_label = labeled_matches.get_key(match)
 
         if prev_label == nil then
@@ -104,7 +140,8 @@ local function make_marker()
             label_matches(matches, labels, prev_labeled_matches, labeled_matches)
 
             if config.label_hide_irrelevant then
-                discard_irrelevant_labeled_matches(labeled_matches, label)
+                -- todo
+               -- discard_irrelevant_labeled_matches(labeled_matches, label)
             end
 
             return labeled_matches
@@ -143,14 +180,14 @@ local function test()
 
     -- discard_conflicting_labels
     local _ = (function()
-        local labels = utils.make_bimap({ "a", "e", "i" })
+        local labels = utils.make_bimap({ "a", "e", "in" })
         local matches = { { 1, 1 }, { 1, 6 } }
         local query = "l"
         local prev_labeled_matches = utils.make_bimap({ e = { 1, 1 } })
         local buf = { get_line = function(line_nr) return "test line" end }
         discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
         tests.assert_eq(labels.get_key("e"), nil)
-        tests.assert_eq(labels.get_key("i"), nil)
+        tests.assert_eq(labels.get_key("in"), nil)
         tests.assert_eq(prev_labeled_matches.get_key({ 1, 1 }), nil)
     end)()
 

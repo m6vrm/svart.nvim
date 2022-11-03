@@ -68,7 +68,7 @@ local function highlight()
 
     return {
         matches = function(matches, query)
-            for _, match in pairs(matches) do
+            for _, match in ipairs(matches) do
                 local line, col = unpack(match)
 
                 vim.api.nvim_buf_add_highlight(

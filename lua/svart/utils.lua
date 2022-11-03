@@ -212,6 +212,11 @@ function M.test()
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.get_value("k1"), "v1")
         tests.assert_eq(bimap.get_value("k2"), "v2")
+
+        -- gaps
+        local bimap = M.make_bimap({ nil, 1, 2, nil, 3 })
+        tests.assert_eq(bimap.count(), 3)
+        tests.assert_eq(bimap.get_values(), { 1, 2, 3 })
     end)()
 end
 
