@@ -2,25 +2,22 @@ local M = {}
 
 function M.keys(table_)
     local keys = {}
-
     for key, _ in pairs(table_) do
         table.insert(keys, key)
     end
-
     return keys
 end
 
 function M.values(table_)
     local values = {}
-
     for _, value in pairs(table_) do
         table.insert(values, value)
     end
-
     return values
 end
 
 function M.string_prefix(string, prefix)
+    assert(prefix ~= "")
     return string:sub(1, #prefix) == prefix
 end
 
@@ -47,79 +44,110 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
     local values_to_keys = values_to_keys or index_values(keys_to_values)
     local count = count or count_non_nil(keys_to_values)
 
-    return {
-        count = function()
-            return count
-        end,
-        pairs = function()
-            return pairs(keys_to_values)
-        end,
-        keys = function()
-            return M.values(values_to_keys)
-        end,
-        values = function()
-            return M.values(keys_to_values)
-        end,
-        append = function(value)
-            assert(value ~= nil)
-            table.insert(keys_to_values, value)
-            values_to_keys[value_to_string(value)] = #keys_to_values
-            count = count + 1
-        end,
-        first = function()
-            local _, value = next(keys_to_values)
-            return value
-        end,
-        drop_first = function()
-            local key, value = next(keys_to_values)
-            if key == nil then return nil end
-            keys_to_values[key] = nil
-            values_to_keys[value_to_string(value)] = nil
-            count = count - 1
-            assert(count >= 0)
-            return value
-        end,
-        set = function(key, value)
-            assert(key ~= nil)
-            assert(value ~= nil)
-            local old_value = keys_to_values[key]
-            if old_value == nil then
-                count = count + 1
-            else
-                values_to_keys[value_to_string(old_value)] = nil
-            end
-            keys_to_values[key] = value
-            values_to_keys[value_to_string(value)] = key
-        end,
-        remove_value = function(value)
-            assert(value ~= nil)
-            local key = values_to_keys[value_to_string(value)]
-            if key == nil then return end
-            keys_to_values[key] = nil
-            values_to_keys[value_to_string(value)] = nil
-            count = count - 1
-            assert(count >= 0)
-        end,
-        remove_key = function(key)
-            assert(key ~= nil)
-            local value = keys_to_values[key]
-            if value == nil then return end
-            values_to_keys[value_to_string(value)] = nil
-            keys_to_values[key] = nil
-            count = count - 1
-            assert(count >= 0)
-        end,
-        value = function(key)
-            return keys_to_values[key]
-        end,
-        key = function(value)
-            assert(value ~= nil)
-            return values_to_keys[value_to_string(value)]
-        end,
-        copy = function()
-            return M.make_bimap(vim.deepcopy(keys_to_values), vim.deepcopy(values_to_keys), count)
-        end,
-    }
+    local this = {}
+
+    this.copy = function()
+        return M.make_bimap(vim.deepcopy(keys_to_values), vim.deepcopy(values_to_keys), count)
+    end
+
+    this.count = function()
+        return count
+    end
+
+    this.pairs = function()
+        return pairs(keys_to_values)
+    end
+
+    this.keys = function()
+        return M.values(values_to_keys)
+    end
+
+    this.values = function()
+        return M.values(keys_to_values)
+    end
+
+    this.value = function(key)
+        assert(key ~= nil)
+        return keys_to_values[key]
+    end
+
+    this.key = function(value)
+        assert(value ~= nil)
+        return values_to_keys[value_to_string(value)]
+    end
+
+    this.has_value = function(value)
+        assert(value ~= nil)
+        return values_to_keys[value_to_string(value)] ~= nil
+    end
+
+    this.has_key = function(key)
+        assert(key ~= nil)
+        return keys_to_values[key] ~= nil
+    end
+
+    this.remove_value = function(value)
+        assert(value ~= nil)
+        local key = values_to_keys[value_to_string(value)]
+        if key == nil then return end
+        keys_to_values[key] = nil
+        values_to_keys[value_to_string(value)] = nil
+        count = count - 1
+        assert(count >= 0)
+    end
+
+    this.remove_key = function(key)
+        assert(key ~= nil)
+        local value = keys_to_values[key]
+        if value == nil then return end
+        values_to_keys[value_to_string(value)] = nil
+        keys_to_values[key] = nil
+        count = count - 1
+        assert(count >= 0)
+    end
+
+    this.set = function(key, value)
+        assert(key ~= nil)
+        assert(value ~= nil)
+        this.remove_key(key)
+        this.remove_value(value)
+        keys_to_values[key] = value
+        values_to_keys[value_to_string(value)] = key
+        count = count + 1
+    end
+
+    this.replace = function(old_key, new_key, value)
+        assert(old_key ~= nil)
+        assert(new_key ~= nil)
+        assert(value ~= nil)
+        this.remove_key(old_key)
+        this.set(new_key, value)
+    end
+
+    this.append = function(value)
+        assert(value ~= nil)
+        this.remove_value(value)
+        table.insert(keys_to_values, value)
+        values_to_keys[value_to_string(value)] = #keys_to_values
+        count = count + 1
+    end
+
+    this.first = function()
+        local _, value = next(keys_to_values)
+        return value
+    end
+
+    this.drop_first = function()
+        local key, value = next(keys_to_values)
+        if key == nil then return nil end
+        keys_to_values[key] = nil
+        values_to_keys[value_to_string(value)] = nil
+        count = count - 1
+        assert(count >= 0)
+        return value
+    end
+
+    return this
 end
 
 function M.test()
@@ -147,7 +175,7 @@ function M.test()
     do
         assert(M.string_prefix("hello", "hello"))
         assert(M.string_prefix("hello", "hell"))
-        assert(M.string_prefix("hello", ""))
+        assert(not M.string_prefix("hello", ""))
         assert(not M.string_prefix("", "hello"))
         assert(not M.string_prefix("hello", "ello"))
     end
@@ -165,6 +193,8 @@ function M.test()
 
         -- append
         bimap.append("v1")
+        bimap.append("v1")
+        bimap.append("v2")
         bimap.append("v2")
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.first(), "v1")
@@ -183,19 +213,23 @@ function M.test()
         tests.assert_eq(bimap.key("v1"), "k1")
         tests.assert_eq(bimap.key("v2"), "k2")
 
-        -- replace
         bimap.set("k1", "v3")
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.value("k1"), "v3")
         tests.assert_eq(bimap.key("v3"), "k1")
         tests.assert_eq(bimap.key("v1"), nil)
 
+        bimap.set("k3", "v3")
+        tests.assert_eq(bimap.count(), 2)
+        tests.assert_eq(bimap.value("k1"), nil)
+        tests.assert_eq(bimap.key("v3"), "k3")
+
         local bimap_copy = bimap.copy()
 
         -- remove key
-        bimap.remove_key("k1")
+        bimap.remove_key("k3")
         tests.assert_eq(bimap.count(), 1)
-        tests.assert_eq(bimap.value("k1"), nil)
+        tests.assert_eq(bimap.value("k3"), nil)
 
         -- remove value
         bimap.remove_value("v2")
@@ -204,7 +238,7 @@ function M.test()
 
         -- copy
         tests.assert_eq(bimap_copy.count(), 2)
-        tests.assert_eq(bimap_copy.value("k1"), "v3")
+        tests.assert_eq(bimap_copy.value("k3"), "v3")
         tests.assert_eq(bimap_copy.value("k2"), "v2")
 
         -- init

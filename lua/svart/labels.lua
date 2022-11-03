@@ -2,36 +2,81 @@ local config = require("svart.config")
 local utils = require("svart.utils")
 local buf = require("svart.buf")
 
-local function generate_labels(atoms, min_count, max_len)
-    local labels = utils.make_bimap({ unpack(atoms) })
+local function make_labels_pool(atoms, min_count, max_len)
+    local generated = false
+    local labels = utils.make_bimap()
+    local discarded = {}
 
-    while true do
-        local tail = {}
+    local available = function(label)
+        for discarded_label, _ in pairs(discarded) do
+            if utils.string_prefix(label, discarded_label) then
+                return false
+            end
+        end
+        return true
+    end
 
-        for _, label in labels.pairs() do
-            for _, atom in ipairs(atoms) do
-                if #label + #atom <= max_len and atom ~= label:sub(#atom) then
-                    table.insert(tail, atom .. label)
-                end
+    local generate_labels_if_needed = function()
+        if generated then
+            return
+        end
+
+        generated = true
+
+        for _, atom in ipairs(atoms) do
+            if available(atom) then
+                labels.append(atom)
             end
         end
 
-        if next(tail) == nil then
-            break
-        end
+        while true do
+            local tail = {}
 
-        for _, label in ipairs(tail) do
-            local prefix = label:sub(1, -2)
-            labels.remove_value(prefix)
-            labels.append(label)
+            for _, label in labels.pairs() do
+                for _, atom in ipairs(atoms) do
+                    if atom ~= label:sub(-#atom) then
+                        local new_label = label .. atom
 
-            if labels.count() >= min_count then
-                return labels
+                        if #new_label <= max_len and available(new_label) then
+                            table.insert(tail, new_label)
+                        end
+                    end
+                end
+            end
+
+            if next(tail) == nil then
+                return
+            end
+
+            for _, label in ipairs(tail) do
+                local prefix = label:sub(1, -2)
+                labels.remove_value(prefix)
+                labels.append(label)
+
+                if labels.count() >= min_count then
+                    return
+                end
             end
         end
     end
 
-    return labels
+    return {
+        available = available,
+        discard = function(label)
+            assert(not generated)
+            assert(label ~= nil)
+            assert(label ~= "")
+            discarded[label] = true
+        end,
+        first = function()
+            generate_labels_if_needed()
+            return labels.first()
+        end,
+        take = function()
+            generate_labels_if_needed()
+            return labels.drop_first()
+        end,
+    }
 end
 
 -- sort by the distance to the middle line
@@ -48,26 +93,15 @@ local function sort_matches(matches, bounds)
     end)
 end
 
--- remove labels that may conflict with next possible query char
-local function discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
+-- discard labels that may conflict with next possible query char
+local function discard_conflicting_labels(labels, matches, query, buf)
     for _, match in ipairs(matches) do
         local line_nr, col = unpack(match)
         local line = buf.line_at(line_nr)
         local next_char = line:sub(col + #query, col + #query):lower()
 
-        -- todo: refactor
-        for _, label in labels.pairs() do
-            if label:sub(1, 1) == next_char then
-                labels.remove_value(label)
-                prev_labeled_matches.remove_key(label)
-            end
-        end
-
-        for label, _ in prev_labeled_matches.pairs() do
-            if label:sub(1, 1) == next_char then
-                labels.remove_value(label)
-                prev_labeled_matches.remove_key(label)
-            end
+        if next_char ~= "" then
+            labels.discard(next_char)
         end
     end
 end
@@ -77,21 +111,28 @@ local function label_matches(matches, labels, prev_labeled_matches, labeled_matc
     for _, match in ipairs(matches) do
         local label = prev_labeled_matches.key(match)
 
-        if label ~= nil then
-            labels.remove_value(label)
+        if label ~= nil and labels.available(label) then
+            labels.discard(label)
             labeled_matches.set(label, match)
         end
     end
 
     -- then add new labels to remaining matches
     for _, match in ipairs(matches) do
-        local prev_label = labeled_matches.key(match)
-
-        if prev_label == nil then
-            local label = labels.drop_first()
+        if not labeled_matches.has_value(match) then
+            local label = labels.take()
 
             if label ~= nil then
                 labeled_matches.set(label, match)
+            end
+        else
+            -- todo: refactor
+            local prev_label = labeled_matches.key(match)
+            local label = labels.first()
+
+            if label ~= nil and #label < #prev_label then
+                assert(labels.take() == label)
+                labeled_matches.replace(prev_label, label, match)
             end
         end
     end
@@ -126,7 +167,7 @@ local function make_marker()
             end
 
             local matches = { unpack(matches) }
-            local labels = generate_labels(config.label_atoms, #matches * 2, config.label_max_len)
+            local labels = make_labels_pool(config.label_atoms, #matches, config.label_max_len)
 
             local prev_query = query:sub(1, -2)
             local prev_labeled_matches = history[prev_query] ~= nil
@@ -136,7 +177,7 @@ local function make_marker()
             local labeled_matches = history[query]
 
             sort_matches(matches, buf.visible_bounds())
-            discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
+            discard_conflicting_labels(labels, matches, query, buf)
             label_matches(matches, labels, prev_labeled_matches, labeled_matches)
 
             if config.label_hide_irrelevant then

@@ -53,7 +53,7 @@ local function start()
         -- input handler (return false = break, true = continue)
         function(query, label)
             -- go to the label
-            if labeled_matches.value(label) ~= nil then
+            if labeled_matches.has_key(label) then
                 local match = labeled_matches.value(label)
                 win.jump_to_pos(match)
                 return false

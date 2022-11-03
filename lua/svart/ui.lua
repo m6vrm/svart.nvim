@@ -94,6 +94,7 @@ local function highlight()
                         col - 1 + #query + i,
                         {
                             strict = false,
+                            virt_text_win_col = col - 1 + #query + i,
                             virt_text = { { char, "SvartLabel" } },
                             virt_text_pos = "overlay",
                         }
