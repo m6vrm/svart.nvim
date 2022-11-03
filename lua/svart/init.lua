@@ -15,7 +15,6 @@ end
 local function start()
     local matches = {}
     local labeled_matches = utils.make_bimap()
-    local no_matches = false
 
     local prompt = ui.prompt()
     local dim = ui.dim()
@@ -28,7 +27,7 @@ local function start()
     input.wait_for_input(
         -- get char (return nil = break)
         function(query, label)
-            prompt.show(query, label, no_matches)
+            prompt.show(query, label, next(matches) == nil)
             ui.redraw()
 
             local char = vim.fn.getcharstr()
@@ -61,7 +60,6 @@ local function start()
             end
 
             matches = search.get_matches(query)
-            no_matches = #matches == 0
 
             highlight.matches(matches, query)
             highlight.cursor(matches[1])
@@ -72,7 +70,7 @@ local function start()
             return true
         end,
         -- get labels
-        function() return labeled_matches.keys() end
+        function() return labeled_matches.get_keys() end
     )
 
     dim.clear()

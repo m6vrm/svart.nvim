@@ -15,6 +15,7 @@ end
 local commands = {
     { "Svart", function() require("svart").start() end },
     { "SvartRepeat", function() require("svart").do_repeat() end },
+    { "SvartTest", function() require("svart.tests").run() end },
 }
 
 for _, command in ipairs(commands) do

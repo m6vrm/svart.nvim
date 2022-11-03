@@ -28,7 +28,7 @@ function M.make_bimap(keys_to_values, values_to_keys)
     local keys_to_values = keys_to_values or {}
     local value_to_string = function(value) return vim.inspect(value) end
 
-    local index_values = function()
+    local index_values = function(keys_to_values)
         local values_to_keys = {}
 
         for key, value in pairs(keys_to_values) do
@@ -38,16 +38,16 @@ function M.make_bimap(keys_to_values, values_to_keys)
         return values_to_keys
     end
 
-    local values_to_keys = values_to_keys or index_values()
+    local values_to_keys = values_to_keys or index_values(keys_to_values)
 
     return {
         pairs = function()
             return pairs(keys_to_values)
         end,
-        keys = function()
+        get_keys = function()
             return M.values(function() return pairs(values_to_keys) end)
         end,
-        values = function()
+        get_values = function()
             return M.values(function() return pairs(keys_to_values) end)
         end,
         drop_first = function()
