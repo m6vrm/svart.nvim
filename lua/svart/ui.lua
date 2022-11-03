@@ -8,8 +8,8 @@ local function highlight_cursor(pos)
     local namespace = pos and search_namespace or dim_namespace
     local hl_group = pos and "SvartMatchCursor" or "SvartDimmedCursor"
 
-    local pos = pos or win.get_cursor_pos()
-    local char = buf.get_char_at_pos(pos)
+    local pos = pos or win.cursor_pos()
+    local char = buf.char_at(pos)
     local line, col = unpack(pos)
 
     vim.api.nvim_buf_set_extmark(
@@ -38,7 +38,7 @@ local function prompt()
 end
 
 local function dim()
-    local bounds = buf.get_visible_bounds()
+    local bounds = buf.visible_bounds()
 
     return {
         content = function()
@@ -64,7 +64,7 @@ local function dim()
 end
 
 local function highlight()
-    local bounds = buf.get_visible_bounds()
+    local bounds = buf.visible_bounds()
 
     return {
         matches = function(matches, query)

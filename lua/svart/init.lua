@@ -53,13 +53,13 @@ local function start()
         -- input handler (return false = break, true = continue)
         function(query, label)
             -- go to the label
-            if labeled_matches.get_value(label) ~= nil then
-                local match = labeled_matches.get_value(label)
+            if labeled_matches.value(label) ~= nil then
+                local match = labeled_matches.value(label)
                 win.jump_to_pos(match)
                 return false
             end
 
-            matches = search.get_matches(query)
+            matches = search.matches(query)
 
             highlight.matches(matches, query)
             highlight.cursor(matches[1])
@@ -70,7 +70,7 @@ local function start()
             return true
         end,
         -- get labels
-        function() return labeled_matches.get_keys() end
+        function() return labeled_matches.keys() end
     )
 
     dim.clear()

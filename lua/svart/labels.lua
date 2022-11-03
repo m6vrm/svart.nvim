@@ -52,7 +52,7 @@ end
 local function discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
     for _, match in ipairs(matches) do
         local line_nr, col = unpack(match)
-        local line = buf.get_line(line_nr)
+        local line = buf.line_at(line_nr)
         local next_char = line:sub(col + #query, col + #query):lower()
 
         -- todo: refactor
@@ -75,7 +75,7 @@ end
 local function label_matches(matches, labels, prev_labeled_matches, labeled_matches)
     -- try to use labels from the previous matches
     for _, match in ipairs(matches) do
-        local label = prev_labeled_matches.get_key(match)
+        local label = prev_labeled_matches.key(match)
 
         if label ~= nil then
             labels.remove_value(label)
@@ -85,7 +85,7 @@ local function label_matches(matches, labels, prev_labeled_matches, labeled_matc
 
     -- then add new labels to remaining matches
     for _, match in ipairs(matches) do
-        local prev_label = labeled_matches.get_key(match)
+        local prev_label = labeled_matches.key(match)
 
         if prev_label == nil then
             local label = labels.drop_first()
@@ -135,7 +135,7 @@ local function make_marker()
 
             local labeled_matches = history[query]
 
-            sort_matches(matches, buf.get_visible_bounds())
+            sort_matches(matches, buf.visible_bounds())
             discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
             label_matches(matches, labels, prev_labeled_matches, labeled_matches)
 
@@ -156,10 +156,10 @@ local function test()
     local _ = (function()
         local atoms = { "a", "b", "c", "d" }
         local labels = generate_labels(atoms, 1, 1)
-        tests.assert_eq(labels.get_values(), { "a", "b", "c", "d" })
+        tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
 
         labels = generate_labels(atoms, 6, 1)
-        tests.assert_eq(labels.get_values(), { "a", "b", "c", "d" })
+        tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
     end)()
 
     -- sort_matches
@@ -184,11 +184,11 @@ local function test()
         local matches = { { 1, 1 }, { 1, 6 } }
         local query = "l"
         local prev_labeled_matches = utils.make_bimap({ e = { 1, 1 } })
-        local buf = { get_line = function(line_nr) return "test line" end }
+        local buf = { line_at = function(line_nr) return "test line" end }
         discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
-        tests.assert_eq(labels.get_key("e"), nil)
-        tests.assert_eq(labels.get_key("in"), nil)
-        tests.assert_eq(prev_labeled_matches.get_key({ 1, 1 }), nil)
+        tests.assert_eq(labels.key("e"), nil)
+        tests.assert_eq(labels.key("in"), nil)
+        tests.assert_eq(prev_labeled_matches.key({ 1, 1 }), nil)
     end)()
 
     -- label_matches
@@ -198,11 +198,11 @@ local function test()
         local prev_labeled_matches = utils.make_bimap({ x = { 2, 1 }, c = { 9, 1 } })
         local labeled_matches = utils.make_bimap()
         label_matches(matches, labels, prev_labeled_matches, labeled_matches)
-        tests.assert_eq(labeled_matches.get_value("x")[1], 2)
-        tests.assert_eq(labeled_matches.get_value("a")[1], 5)
-        tests.assert_eq(labeled_matches.get_value("b")[1], 7)
-        tests.assert_eq(labeled_matches.get_value("c")[1], 9)
-        tests.assert_eq(labeled_matches.get_key({ 8, 1 }), nil)
+        tests.assert_eq(labeled_matches.value("x")[1], 2)
+        tests.assert_eq(labeled_matches.value("a")[1], 5)
+        tests.assert_eq(labeled_matches.value("b")[1], 7)
+        tests.assert_eq(labeled_matches.value("c")[1], 9)
+        tests.assert_eq(labeled_matches.key({ 8, 1 }), nil)
     end)()
 
     -- discard_irrelevant_labeled_matches
@@ -210,9 +210,9 @@ local function test()
         local labeled_matches = utils.make_bimap({ aa = { 2, 1 }, ba = { 3, 1 }, bb = { 1, 1 } })
         local current_label = "b"
         discard_irrelevant_labeled_matches(labeled_matches, current_label)
-        tests.assert_eq(labeled_matches.get_value("aa"), nil)
-        tests.assert_eq(labeled_matches.get_value("ba")[1], 3)
-        tests.assert_eq(labeled_matches.get_value("bb")[1], 1)
+        tests.assert_eq(labeled_matches.value("aa"), nil)
+        tests.assert_eq(labeled_matches.value("ba")[1], 3)
+        tests.assert_eq(labeled_matches.value("bb")[1], 1)
     end)()
 end
 

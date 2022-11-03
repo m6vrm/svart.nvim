@@ -54,10 +54,10 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
         pairs = function()
             return pairs(keys_to_values)
         end,
-        get_keys = function()
+        keys = function()
             return M.values(values_to_keys)
         end,
-        get_values = function()
+        values = function()
             return M.values(keys_to_values)
         end,
         append = function(value)
@@ -66,7 +66,7 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
             values_to_keys[value_to_string(value)] = #keys_to_values
             count = count + 1
         end,
-        get_first = function()
+        first = function()
             local _, value = next(keys_to_values)
             return value
         end,
@@ -109,10 +109,10 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
             count = count - 1
             assert(count >= 0)
         end,
-        get_value = function(key)
+        value = function(key)
             return keys_to_values[key]
         end,
-        get_key = function(value)
+        key = function(value)
             assert(value ~= nil)
             return values_to_keys[value_to_string(value)]
         end,
@@ -157,9 +157,9 @@ function M.test()
         -- empty
         local bimap = M.make_bimap()
         tests.assert_eq(bimap.count(), 0)
-        tests.assert_eq(bimap.get_keys(), {})
-        tests.assert_eq(bimap.get_values(), {})
-        tests.assert_eq(bimap.get_first(), nil)
+        tests.assert_eq(bimap.keys(), {})
+        tests.assert_eq(bimap.values(), {})
+        tests.assert_eq(bimap.first(), nil)
         tests.assert_eq(bimap.drop_first(), nil)
         tests.assert_eq(bimap.count(), 0)
 
@@ -167,10 +167,10 @@ function M.test()
         bimap.append("v1")
         bimap.append("v2")
         tests.assert_eq(bimap.count(), 2)
-        tests.assert_eq(bimap.get_first(), "v1")
+        tests.assert_eq(bimap.first(), "v1")
         tests.assert_eq(bimap.drop_first(), "v1")
         tests.assert_eq(bimap.count(), 1)
-        tests.assert_eq(bimap.get_values(), { "v2" })
+        tests.assert_eq(bimap.values(), { "v2" })
         tests.assert_eq(bimap.drop_first(), "v2")
         tests.assert_eq(bimap.count(), 0)
 
@@ -178,45 +178,45 @@ function M.test()
         bimap.set("k1", "v1")
         bimap.set("k2", "v2")
         tests.assert_eq(bimap.count(), 2)
-        tests.assert_eq(bimap.get_value("k1"), "v1")
-        tests.assert_eq(bimap.get_value("k2"), "v2")
-        tests.assert_eq(bimap.get_key("v1"), "k1")
-        tests.assert_eq(bimap.get_key("v2"), "k2")
+        tests.assert_eq(bimap.value("k1"), "v1")
+        tests.assert_eq(bimap.value("k2"), "v2")
+        tests.assert_eq(bimap.key("v1"), "k1")
+        tests.assert_eq(bimap.key("v2"), "k2")
 
         -- replace
         bimap.set("k1", "v3")
         tests.assert_eq(bimap.count(), 2)
-        tests.assert_eq(bimap.get_value("k1"), "v3")
-        tests.assert_eq(bimap.get_key("v3"), "k1")
-        tests.assert_eq(bimap.get_key("v1"), nil)
+        tests.assert_eq(bimap.value("k1"), "v3")
+        tests.assert_eq(bimap.key("v3"), "k1")
+        tests.assert_eq(bimap.key("v1"), nil)
 
         local bimap_copy = bimap.copy()
 
         -- remove key
         bimap.remove_key("k1")
         tests.assert_eq(bimap.count(), 1)
-        tests.assert_eq(bimap.get_value("k1"), nil)
+        tests.assert_eq(bimap.value("k1"), nil)
 
         -- remove value
         bimap.remove_value("v2")
         tests.assert_eq(bimap.count(), 0)
-        tests.assert_eq(bimap.get_key("v2"), nil)
+        tests.assert_eq(bimap.key("v2"), nil)
 
         -- copy
         tests.assert_eq(bimap_copy.count(), 2)
-        tests.assert_eq(bimap_copy.get_value("k1"), "v3")
-        tests.assert_eq(bimap_copy.get_value("k2"), "v2")
+        tests.assert_eq(bimap_copy.value("k1"), "v3")
+        tests.assert_eq(bimap_copy.value("k2"), "v2")
 
         -- init
         local bimap = M.make_bimap({ k1 = "v1", k2 = "v2" })
         tests.assert_eq(bimap.count(), 2)
-        tests.assert_eq(bimap.get_value("k1"), "v1")
-        tests.assert_eq(bimap.get_value("k2"), "v2")
+        tests.assert_eq(bimap.value("k1"), "v1")
+        tests.assert_eq(bimap.value("k2"), "v2")
 
         -- gaps
         local bimap = M.make_bimap({ nil, 1, 2, nil, 3 })
         tests.assert_eq(bimap.count(), 3)
-        tests.assert_eq(bimap.get_values(), { 1, 2, 3 })
+        tests.assert_eq(bimap.values(), { 1, 2, 3 })
     end)()
 end
 

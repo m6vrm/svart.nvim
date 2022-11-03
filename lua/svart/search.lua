@@ -1,7 +1,7 @@
 local buf = require("svart.buf")
 local win = require("svart.win")
 
-local function get_search_regex(query)
+local function search_regex(query)
     return "\\V" .. vim.fn.escape(query, "\\")
 end
 
@@ -16,7 +16,7 @@ local function directional_search(query, backwards, bounds)
     local saved_view_state = win.save_view_state()
 
     return function()
-        local regex = get_search_regex(query) .. "\\_."
+        local regex = search_regex(query) .. "\\_."
         local match = vim.fn.searchpos(regex, search_flags, search_stopline)
         local line, col = unpack(match)
 
@@ -35,15 +35,15 @@ local function begin_regular_search(query)
     end
 
     local saved_view_state = win.save_view_state()
-    local regex = get_search_regex(query)
+    local regex = search_regex(query)
 
     vim.cmd("/" .. regex)
 
     saved_view_state.restore()
 end
 
-local function get_matches(query)
-    local bounds = buf.get_visible_bounds()
+local function matches(query)
+    local bounds = buf.visible_bounds()
     local matches = {}
 
     for match in directional_search(query, false, bounds) do
@@ -59,5 +59,5 @@ end
 
 return {
     begin_regular_search = begin_regular_search,
-    get_matches = get_matches,
+    matches = matches,
 }
