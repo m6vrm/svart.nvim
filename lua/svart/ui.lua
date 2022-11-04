@@ -29,7 +29,7 @@ local function prompt()
         show = function(query, label, error)
             local hl_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
             local gap = label == "" and "" or " "
-            vim.api.nvim_echo({ { "svart> " }, { query, hl_group }, { gap .. label } }, false, {})
+            vim.api.nvim_echo({ { "> " }, { query, hl_group }, { gap .. label } }, false, {})
         end,
         clear = function()
             vim.api.nvim_echo({}, false, {})

@@ -14,10 +14,14 @@ local function directional_search(query, backwards, bounds)
     local search_stopline = backwards and bounds.top or bounds.bottom
 
     local saved_view_state = win.save_view_state()
+    local first_search = true
 
     return function()
+        local cursor_match_flag = first_search and not backwards and "c" or ""
+        first_search = false
+
         local regex = search_regex(query) .. "\\_."
-        local match = vim.fn.searchpos(regex, search_flags, search_stopline)
+        local match = vim.fn.searchpos(regex, search_flags .. cursor_match_flag, search_stopline)
         local line, col = unpack(match)
 
         if line == 0 and col == 0 then
