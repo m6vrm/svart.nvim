@@ -34,7 +34,6 @@ local function start()
 
             highlight.clear()
 
-            -- jump to the best match and begin regular search
             if char == input.keys.best_match then
                 if matches[1] ~= nil then
                     win.jump_to_pos(matches[1])
@@ -52,7 +51,6 @@ local function start()
         end,
         -- input handler (return false = break, true = continue)
         function(query, label)
-            -- go to the label
             if labeled_matches.has_key(label) then
                 local match = labeled_matches.value(label)
                 win.jump_to_pos(match)

@@ -17,7 +17,7 @@ end
 
 local function run()
     test("svart.utils")
---    test("svart.labels")
+    test("svart.labels")
 end
 
 return {

@@ -17,28 +17,27 @@ local function make_labels_pool(atoms, min_count, max_len)
     end
 
     local generate_labels_if_needed = function()
-        if generated then
-            return
-        end
-
+        if generated then return end
         generated = true
-
-        for _, atom in ipairs(atoms) do
-            if available(atom) then
-                labels.append(atom)
-            end
-        end
 
         while true do
             local tail = {}
 
-            for _, label in labels.pairs() do
+            if labels.first() == nil then
                 for _, atom in ipairs(atoms) do
-                    if atom ~= label:sub(-#atom) then
-                        local new_label = label .. atom
+                    if available(atom) then
+                        table.insert(tail, atom)
+                    end
+                end
+            else
+                for _, label in labels.pairs() do
+                    for _, atom in ipairs(atoms) do
+                        if atom ~= label:sub(-#atom) then
+                            local new_label = label .. atom
 
-                        if #new_label <= max_len and available(new_label) then
-                            table.insert(tail, new_label)
+                            if #new_label <= max_len and available(new_label) then
+                                table.insert(tail, new_label)
+                            end
                         end
                     end
                 end
@@ -79,7 +78,6 @@ local function make_labels_pool(atoms, min_count, max_len)
     }
 end
 
--- sort by the distance to the middle line
 local function sort_matches(matches, bounds)
     local middle_line = math.floor(bounds.top + (bounds.bottom - bounds.top) / 2)
 
@@ -93,53 +91,47 @@ local function sort_matches(matches, bounds)
     end)
 end
 
--- discard labels that may conflict with next possible query char
-local function discard_conflicting_labels(labels, matches, query, buf)
+local function discard_conflicting_labels(labels_pool, matches, query, buf)
     for _, match in ipairs(matches) do
         local line_nr, col = unpack(match)
         local line = buf.line_at(line_nr)
         local next_char = line:sub(col + #query, col + #query):lower()
 
         if next_char ~= "" then
-            labels.discard(next_char)
+            labels_pool.discard(next_char)
         end
     end
 end
 
-local function label_matches(matches, labels, prev_labeled_matches, labeled_matches)
-    -- try to use labels from the previous matches
+local function label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
     for _, match in ipairs(matches) do
         local label = prev_labeled_matches.key(match)
 
-        if label ~= nil and labels.available(label) then
-            labels.discard(label)
+        if label ~= nil and labels_pool.available(label) then
+            labels_pool.discard(label)
             labeled_matches.set(label, match)
         end
     end
 
-    -- then add new labels to remaining matches
     for _, match in ipairs(matches) do
-        if not labeled_matches.has_value(match) then
-            local label = labels.take()
+        local label = labels_pool.first()
 
-            if label ~= nil then
-                labeled_matches.set(label, match)
-            end
-        else
-            -- todo: refactor
+        if label ~= nil then
+            assert(labels_pool.take() == label)
             local prev_label = labeled_matches.key(match)
-            local label = labels.first()
 
-            if label ~= nil and #label < #prev_label then
-                assert(labels.take() == label)
+            if prev_label == nil then
+                labeled_matches.set(label, match)
+            elseif #label < #prev_label then
                 labeled_matches.replace(prev_label, label, match)
             end
         end
     end
 end
 
--- remove matches with irrelevant labels
 local function discard_irrelevant_labeled_matches(labeled_matches, current_label)
+    if current_label == "" then return end
+
     for label, _ in labeled_matches.pairs() do
         if not utils.string_prefix(label, current_label) then
             labeled_matches.remove_key(label)
@@ -156,33 +148,32 @@ local function make_marker()
                 history = {}
             end
 
-            if history[query] ~= nil then
-                return history[query]
-            end
-
-            history[query] = utils.make_bimap()
-
-            if #query < config.label_min_query_len then
-                return history[query]
-            end
-
-            local matches = { unpack(matches) }
-            local labels = make_labels_pool(config.label_atoms, #matches, config.label_max_len)
-
-            local prev_query = query:sub(1, -2)
-            local prev_labeled_matches = history[prev_query] ~= nil
-                and history[prev_query].copy()
+            local labeled_matches = history[query] ~= nil
+                and history[query].copy()
                 or utils.make_bimap()
 
-            local labeled_matches = history[query]
+            if #query < config.label_min_query_len then
+                return labeled_matches
+            end
 
-            sort_matches(matches, buf.visible_bounds())
-            discard_conflicting_labels(labels, matches, query, buf)
-            label_matches(matches, labels, prev_labeled_matches, labeled_matches)
+            if history[query] == nil then
+                local matches = { unpack(matches) }
+                local labels_pool = make_labels_pool(config.label_atoms, #matches, config.label_max_len)
+
+                local prev_query = query:sub(1, -2)
+                local prev_labeled_matches = history[prev_query] ~= nil
+                    and history[prev_query].copy()
+                    or utils.make_bimap()
+
+                sort_matches(matches, buf.visible_bounds())
+                discard_conflicting_labels(labels_pool, matches, query, buf)
+                label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+
+                history[query] = labeled_matches.copy()
+            end
 
             if config.label_hide_irrelevant then
-                -- todo
-               -- discard_irrelevant_labeled_matches(labeled_matches, label)
+                discard_irrelevant_labeled_matches(labeled_matches, label)
             end
 
             return labeled_matches
@@ -193,14 +184,58 @@ end
 local function test()
     local tests = require("svart.tests")
 
-    -- generate_labels
+    -- make_labels_pool
     do
+        -- generation
         local atoms = { "a", "b", "c", "d" }
-        local labels = generate_labels(atoms, 1, 1)
-        tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
+        local labels_pool = make_labels_pool(atoms, 1, 1)
+        assert(labels_pool.available("a"))
+        assert(labels_pool.available("b"))
+        assert(labels_pool.available("c"))
+        assert(labels_pool.available("d"))
+        tests.assert_eq(labels_pool.take(), "a")
+        tests.assert_eq(labels_pool.take(), nil)
 
-        labels = generate_labels(atoms, 6, 1)
-        tests.assert_eq(labels.values(), { "a", "b", "c", "d" })
+        labels_pool = make_labels_pool(atoms, 6, 1)
+        tests.assert_eq(labels_pool.take(), "a")
+        tests.assert_eq(labels_pool.take(), "b")
+        tests.assert_eq(labels_pool.take(), "c")
+        tests.assert_eq(labels_pool.take(), "d")
+        tests.assert_eq(labels_pool.take(), nil)
+
+        labels_pool = make_labels_pool(atoms, 6, 2)
+        tests.assert_eq(labels_pool.take(), "b")
+        tests.assert_eq(labels_pool.take(), "c")
+        tests.assert_eq(labels_pool.take(), "d")
+        tests.assert_eq(labels_pool.take(), "ab")
+        tests.assert_eq(labels_pool.take(), "ac")
+        tests.assert_eq(labels_pool.take(), "ad")
+        tests.assert_eq(labels_pool.take(), nil)
+
+        labels_pool = make_labels_pool(atoms, 9, 2)
+        tests.assert_eq(labels_pool.take(), "d")
+        tests.assert_eq(labels_pool.take(), "ab")
+        tests.assert_eq(labels_pool.take(), "ac")
+        tests.assert_eq(labels_pool.take(), "ad")
+        tests.assert_eq(labels_pool.take(), "ba")
+        tests.assert_eq(labels_pool.take(), "bc")
+        tests.assert_eq(labels_pool.take(), "bd")
+        tests.assert_eq(labels_pool.take(), "ca")
+        tests.assert_eq(labels_pool.take(), "cb")
+        tests.assert_eq(labels_pool.take(), nil)
+
+        -- discard
+        labels_pool = make_labels_pool(atoms, 6, 2)
+        labels_pool.discard("a")
+        assert(not labels_pool.available("a"))
+        assert(not labels_pool.available("ab"))
+        tests.assert_eq(labels_pool.take(), "d")
+        tests.assert_eq(labels_pool.take(), "ba")
+        tests.assert_eq(labels_pool.take(), "bc")
+        tests.assert_eq(labels_pool.take(), "bd")
+        tests.assert_eq(labels_pool.take(), "ca")
+        tests.assert_eq(labels_pool.take(), "cb")
+        tests.assert_eq(labels_pool.take(), nil)
     end
 
     -- sort_matches
@@ -221,29 +256,27 @@ local function test()
 
     -- discard_conflicting_labels
     do
-        local labels = utils.make_bimap({ "a", "e", "in" })
+        local labels_pool = make_labels_pool({}, 1, 1)
         local matches = { { 1, 1 }, { 1, 6 } }
-        local query = "l"
-        local prev_labeled_matches = utils.make_bimap({ e = { 1, 1 } })
+        local query = "_"
         local buf = { line_at = function(line_nr) return "test line" end }
-        discard_conflicting_labels(labels, matches, query, prev_labeled_matches, buf)
-        tests.assert_eq(labels.key("e"), nil)
-        tests.assert_eq(labels.key("in"), nil)
-        tests.assert_eq(prev_labeled_matches.key({ 1, 1 }), nil)
+        discard_conflicting_labels(labels_pool, matches, query, buf)
+        assert(not labels_pool.available("e"))
+        assert(not labels_pool.available("in"))
     end
 
     -- label_matches
     do
         local matches = { { 2, 1 }, { 5, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 } }
-        local labels = utils.make_bimap({ "a", "b", "c" })
-        local prev_labeled_matches = utils.make_bimap({ x = { 2, 1 }, c = { 9, 1 } })
+        local labels_pool = make_labels_pool({ "a", "b", "c", "d", "e", "f" }, #matches, 2)
+        local prev_labeled_matches = utils.make_bimap({ x = { 2, 1 }, c = { 9, 1 }, zz = { 7, 1 } })
         local labeled_matches = utils.make_bimap()
-        label_matches(matches, labels, prev_labeled_matches, labeled_matches)
-        tests.assert_eq(labeled_matches.value("x")[1], 2)
-        tests.assert_eq(labeled_matches.value("a")[1], 5)
-        tests.assert_eq(labeled_matches.value("b")[1], 7)
-        tests.assert_eq(labeled_matches.value("c")[1], 9)
-        tests.assert_eq(labeled_matches.key({ 8, 1 }), nil)
+        label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+        tests.assert_eq(labeled_matches.key({ 5, 1 }), "b")
+        tests.assert_eq(labeled_matches.key({ 9, 1 }), "c")
+        tests.assert_eq(labeled_matches.key({ 7, 1 }), "d")
+        tests.assert_eq(labeled_matches.key({ 8, 1 }), "e")
+        tests.assert_eq(labeled_matches.key({ 2, 1 }), "x")
     end
 
     -- discard_irrelevant_labeled_matches
@@ -252,8 +285,8 @@ local function test()
         local current_label = "b"
         discard_irrelevant_labeled_matches(labeled_matches, current_label)
         tests.assert_eq(labeled_matches.value("aa"), nil)
-        tests.assert_eq(labeled_matches.value("ba")[1], 3)
-        tests.assert_eq(labeled_matches.value("bb")[1], 1)
+        tests.assert_eq(labeled_matches.key({ 3, 1 }), "ba")
+        tests.assert_eq(labeled_matches.key({ 1, 1 }), "bb")
     end
 end
 

@@ -46,6 +46,10 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
 
     local this = {}
 
+    this.dump = function()
+        return vim.inspect(keys_to_values)
+    end
+
     this.copy = function()
         return M.make_bimap(vim.deepcopy(keys_to_values), vim.deepcopy(values_to_keys), count)
     end
@@ -175,7 +179,6 @@ function M.test()
     do
         assert(M.string_prefix("hello", "hello"))
         assert(M.string_prefix("hello", "hell"))
-        assert(not M.string_prefix("hello", ""))
         assert(not M.string_prefix("", "hello"))
         assert(not M.string_prefix("hello", "ello"))
     end
