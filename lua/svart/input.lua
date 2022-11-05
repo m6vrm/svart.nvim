@@ -7,9 +7,9 @@ end
 
 local keys = {
     cancel = replace_termcodes(config.key_cancel),
-    best_match = replace_termcodes(config.key_best_match),
     delete_char = replace_termcodes(config.key_delete_char),
     delete_word = replace_termcodes(config.key_delete_word),
+    best_match = replace_termcodes(config.key_best_match),
     next_match = replace_termcodes(config.key_next_match),
     prev_match = replace_termcodes(config.key_prev_match),
 }
@@ -18,7 +18,7 @@ local function is_printable(char)
     local char_nr = vim.fn.char2nr(char)
 
     return type(char_nr) == "number"
-       and ((char_nr >= 32 and char_nr <= 126) or char_nr > 159)
+        and ((char_nr >= 32 and char_nr <= 126) or char_nr > 159)
 end
 
 local function is_label(possible_label, labels)
@@ -31,8 +31,8 @@ local function is_label(possible_label, labels)
     return false
 end
 
-local function wait_for_input(get_char, input_handler, get_labels)
-    local query = ""
+local function wait_for_input(query, get_labels, get_char, input_handler)
+    local query = query
     local label = ""
 
     while true do
@@ -63,14 +63,12 @@ local function wait_for_input(get_char, input_handler, get_labels)
 
             if is_label(label .. char, labels) then
                 label = label .. char
-            else
+            elseif label == "" then
                 query = query .. char
             end
         end
 
-        if not input_handler(query, label) then
-            break
-        end
+        if not input_handler(query, label) then break end
     end
 end
 

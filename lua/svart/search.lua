@@ -3,7 +3,7 @@ local buf = require("svart.buf")
 local win = require("svart.win")
 
 local function search_regex(query)
-    return "\\V" .. vim.fn.escape(query, "\\") .. "\\."
+    return "\\V" .. vim.fn.escape(query, "\\") .. "\\_."
 end
 
 local function directional_search(query, backwards, bounds)

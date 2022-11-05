@@ -143,8 +143,11 @@ local function make_context()
     local history = {}
     local labeled_matches = utils.make_bimap()
 
+    local atoms = {}
+    config.label_atoms:gsub(".", function(char) table.insert(atoms, char) end)
+
     return {
-        label_matches = function(matches, query)
+        label_matches = function(matches, query, label)
             if query == "" then
                 history = {}
             end
@@ -159,7 +162,7 @@ local function make_context()
 
             if history[query] == nil then
                 local matches = { unpack(matches) }
-                local labels_pool = make_labels_pool(config.label_atoms, #matches, config.label_max_len)
+                local labels_pool = make_labels_pool(atoms, #matches, config.label_max_len)
 
                 local prev_query = query:sub(1, -2)
                 local prev_labeled_matches = history[prev_query] ~= nil
@@ -172,8 +175,7 @@ local function make_context()
 
                 history[query] = labeled_matches.copy()
             end
-        end,
-        discard_irrelevant_labels = function(label)
+
             if config.label_hide_irrelevant then
                 discard_irrelevant_labels(labeled_matches, label)
             end

@@ -1,8 +1,7 @@
 local function test(module)
-    print("Begin test " .. module)
     package.loaded[module] = nil
     require(module).test()
-    print("End test " .. module)
+    print(module .. " test passed")
 end
 
 local function assert_eq(lhs, rhs, message)

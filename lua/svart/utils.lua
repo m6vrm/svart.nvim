@@ -198,7 +198,7 @@ function M.test()
         bimap.append("v1")
         bimap.append("v1")
         bimap.append("v2")
-        bimap.append("v2")
+        bimap.append("v2") -- duplicates not allowed
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.first(), "v1")
         tests.assert_eq(bimap.drop_first(), "v1")
@@ -216,12 +216,14 @@ function M.test()
         tests.assert_eq(bimap.key("v1"), "k1")
         tests.assert_eq(bimap.key("v2"), "k2")
 
+        -- replace key
         bimap.set("k1", "v3")
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.value("k1"), "v3")
         tests.assert_eq(bimap.key("v3"), "k1")
         tests.assert_eq(bimap.key("v1"), nil)
 
+        -- replace value
         bimap.set("k3", "v3")
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.value("k1"), nil)

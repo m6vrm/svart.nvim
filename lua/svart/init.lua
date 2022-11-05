@@ -12,7 +12,9 @@ local function setup(overrides)
     end
 end
 
-local function start()
+local function start(query)
+    local query = query or ""
+
     local search_ctx = search.make_context(win.cursor_pos())
     local labels_ctx = labels.make_context()
 
@@ -23,6 +25,9 @@ local function start()
     dim.content()
 
     input.wait_for_input(
+        query,
+        -- get labels
+        function() return labels_ctx.labels() end,
         -- get char (return nil = break)
         function(query, label)
             prompt.show(query, label, search_ctx.is_empty())
@@ -58,20 +63,16 @@ local function start()
             end
 
             local matches = search.search(query)
+
             search_ctx.reset(matches)
+            labels_ctx.label_matches(matches, query, label)
 
             highlight.matches(matches, query)
             highlight.cursor(search_ctx.best_match())
-
-            labels_ctx.label_matches(matches, query)
-            labels_ctx.discard_irrelevant_labels(label)
-
             highlight.labels(labels_ctx.labeled_matches(), query)
 
             return true
-        end,
-        -- get labels
-        function() return labels_ctx.labels() end
+        end
     )
 
     dim.clear()
