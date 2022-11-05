@@ -3,7 +3,7 @@ local buf = require("svart.buf")
 local win = require("svart.win")
 
 local function search_regex(query)
-    return "\\V" .. vim.fn.escape(query, "\\")
+    return "\\V" .. vim.fn.escape(query, "\\") .. "\\."
 end
 
 local function directional_search(query, backwards, bounds)
@@ -21,7 +21,7 @@ local function directional_search(query, backwards, bounds)
         local cursor_match_flag = first_search and not backwards and "c" or ""
         first_search = false
 
-        local regex = search_regex(query) .. "\\_."
+        local regex = search_regex(query)
         local match = vim.fn.searchpos(regex, search_flags .. cursor_match_flag, search_stopline)
         local line, col = unpack(match)
 
@@ -103,7 +103,7 @@ local function make_context(cursor_pos)
         is_empty = function()
             return next(matches) == nil
         end,
-        current_match = function()
+        best_match = function()
             return matches[current_index]
         end,
         next_match = function()
@@ -117,8 +117,54 @@ local function make_context(cursor_pos)
     }
 end
 
+local function test()
+    local tests = require("svart.tests")
+
+    -- search_regex
+    do
+        local regex = search_regex([[ \ test \ ]])
+        tests.assert_eq(regex, [[\V \\ test \\ \.]])
+    end
+
+    -- make_context
+    do
+        -- empty
+        local ctx = make_context({ 2, 1 })
+        assert(ctx.is_empty())
+        tests.assert_eq(ctx.best_match(), nil)
+
+        -- filled
+        ctx.reset({ { 1, 1 }, { 3, 1 }, { 4, 1 } })
+        assert(not ctx.is_empty())
+        tests.assert_eq(ctx.best_match(), { 3, 1 })
+
+        -- next
+        ctx.next_match()
+        tests.assert_eq(ctx.best_match(), { 4, 1 })
+
+        -- wrap around
+        ctx.next_match()
+        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        ctx.prev_match()
+        tests.assert_eq(ctx.best_match(), { 4, 1 })
+
+        -- prev
+        ctx.prev_match()
+        tests.assert_eq(ctx.best_match(), { 3, 1 })
+
+        -- preseve best match
+        ctx.reset({ { 1, 1 }, { 3, 1 } })
+        tests.assert_eq(ctx.best_match(), { 3, 1 })
+
+        -- clear best match
+        ctx.reset({ { 1, 1 } })
+        tests.assert_eq(ctx.best_match(), { 1, 1 })
+    end
+end
+
 return {
     regular_search = regular_search,
     search = search,
     make_context = make_context,
+    test = test,
 }

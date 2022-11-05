@@ -33,8 +33,8 @@ local function start()
             highlight.clear()
 
             if char == input.keys.best_match then
-                if search_ctx.current_match() then
-                    win.jump_to_pos(search_ctx.current_match())
+                if search_ctx.best_match() then
+                    win.jump_to_pos(search_ctx.best_match())
                     search.regular_search(query)
                 end
 
@@ -61,7 +61,7 @@ local function start()
             search_ctx.reset(matches)
 
             highlight.matches(matches, query)
-            highlight.cursor(search_ctx.current_match())
+            highlight.cursor(search_ctx.best_match())
 
             labels_ctx.label_matches(matches, query)
             labels_ctx.discard_irrelevant_labels(label)
