@@ -123,7 +123,7 @@ local function test()
     -- search_regex
     do
         local regex = search_regex([[ \ test \ ]])
-        tests.assert_eq(regex, [[\V \\ test \\ \.]])
+        tests.assert_eq(regex, [[\V \\ test \\ \_.]])
     end
 
     -- make_context
