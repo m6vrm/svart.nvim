@@ -81,24 +81,18 @@ local function highlight()
         labels = function(labeled_matches, query)
             for label, match in labeled_matches.pairs() do
                 local line, col = unpack(match)
-                local i = 0
 
-                for char in label:gmatch(".") do
-                    vim.api.nvim_buf_set_extmark(
-                        0,
-                        namespace,
-                        line - 1,
-                        col - 1 + #query + i,
-                        {
-                            strict = false,
-                            virt_text_win_col = col - 1 + #query + i,
-                            virt_text = { { char, "SvartLabel" } },
-                            virt_text_pos = "overlay",
-                        }
-                    )
-
-                    i = i + 1
-                end
+                vim.api.nvim_buf_set_extmark(
+                    0,
+                    namespace,
+                    line - 1,
+                    col - 1 + #query,
+                    {
+                        strict = false,
+                        virt_text = { { label, "SvartLabel" } },
+                        virt_text_pos = "overlay",
+                    }
+                )
             end
         end,
         cursor = function(pos)
