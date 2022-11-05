@@ -10,18 +10,25 @@ local keys = {
     best_match = replace_termcodes(config.key_best_match),
     delete_char = replace_termcodes(config.key_delete_char),
     delete_word = replace_termcodes(config.key_delete_word),
+    next_match = replace_termcodes(config.key_next_match),
+    prev_match = replace_termcodes(config.key_prev_match),
 }
 
-local function detect_label(char, prev_label, labels)
-    for _, label in ipairs(labels) do
-        local prefix = prev_label .. char
+local function is_printable(char)
+    local char_nr = vim.fn.char2nr(char)
 
-        if utils.string_prefix(label, prefix) then
-            return prefix
+    return type(char_nr) == "number"
+       and ((char_nr >= 32 and char_nr <= 126) or char_nr > 159)
+end
+
+local function is_label(possible_label, labels)
+    for _, label in ipairs(labels) do
+        if utils.string_prefix(label, possible_label) then
+            return true
         end
     end
 
-    return prev_label
+    return false
 end
 
 local function wait_for_input(get_char, input_handler, get_labels)
@@ -34,9 +41,6 @@ local function wait_for_input(get_char, input_handler, get_labels)
         if char == nil then
             break
         end
-
-        local labels = get_labels()
-        label = detect_label(char, label, labels)
 
         if char == keys.delete_char then
             if label ~= "" then
@@ -52,8 +56,16 @@ local function wait_for_input(get_char, input_handler, get_labels)
             else
                 query = vim.fn.substitute(query, delete_word_regex, "", "")
             end
-        elseif label == "" then
-            query = query .. char
+        end
+
+        if is_printable(char) then
+            local labels = get_labels()
+
+            if is_label(label .. char, labels) then
+                label = label .. char
+            else
+                query = query .. char
+            end
         end
 
         if not input_handler(query, label) then

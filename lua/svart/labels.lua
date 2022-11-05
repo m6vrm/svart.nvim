@@ -129,7 +129,7 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
     end
 end
 
-local function discard_irrelevant_labeled_matches(labeled_matches, current_label)
+local function discard_irrelevant_labels(labeled_matches, current_label)
     if current_label == "" then return end
 
     for label, _ in labeled_matches.pairs() do
@@ -139,16 +139,17 @@ local function discard_irrelevant_labeled_matches(labeled_matches, current_label
     end
 end
 
-local function make_marker()
+local function make_context()
     local history = {}
+    local labeled_matches = utils.make_bimap()
 
     return {
-        label_matches = function(matches, query, label)
+        label_matches = function(matches, query)
             if query == "" then
                 history = {}
             end
 
-            local labeled_matches = history[query] ~= nil
+            labeled_matches = history[query] ~= nil
                 and history[query].copy()
                 or utils.make_bimap()
 
@@ -171,12 +172,23 @@ local function make_marker()
 
                 history[query] = labeled_matches.copy()
             end
-
+        end,
+        discard_irrelevant_labels = function(label)
             if config.label_hide_irrelevant then
-                discard_irrelevant_labeled_matches(labeled_matches, label)
+                discard_irrelevant_labels(labeled_matches, label)
             end
-
+        end,
+        labeled_matches = function()
             return labeled_matches
+        end,
+        labels = function()
+            return labeled_matches.keys()
+        end,
+        has_label = function(label)
+            return labeled_matches.has_key(label)
+        end,
+        match = function(label)
+            return labeled_matches.value(label)
         end,
     }
 end
@@ -279,11 +291,11 @@ local function test()
         tests.assert_eq(labeled_matches.key({ 2, 1 }), "x")
     end
 
-    -- discard_irrelevant_labeled_matches
+    -- discard_irrelevant_labels
     do
         local labeled_matches = utils.make_bimap({ aa = { 2, 1 }, ba = { 3, 1 }, bb = { 1, 1 } })
         local current_label = "b"
-        discard_irrelevant_labeled_matches(labeled_matches, current_label)
+        discard_irrelevant_labels(labeled_matches, current_label)
         tests.assert_eq(labeled_matches.value("aa"), nil)
         tests.assert_eq(labeled_matches.key({ 3, 1 }), "ba")
         tests.assert_eq(labeled_matches.key({ 1, 1 }), "bb")
@@ -291,6 +303,6 @@ local function test()
 end
 
 return {
-    make_marker = make_marker,
+    make_context = make_context,
     test = test,
 }

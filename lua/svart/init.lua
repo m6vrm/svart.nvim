@@ -13,21 +13,19 @@ local function setup(overrides)
 end
 
 local function start()
-    local matches = {}
-    local labeled_matches = utils.make_bimap()
+    local search_ctx = search.make_context(win.cursor_pos())
+    local labels_ctx = labels.make_context()
 
     local prompt = ui.prompt()
     local dim = ui.dim()
     local highlight = ui.highlight()
-
-    local marker = labels.make_marker()
 
     dim.content()
 
     input.wait_for_input(
         -- get char (return nil = break)
         function(query, label)
-            prompt.show(query, label, next(matches) == nil)
+            prompt.show(query, label, search_ctx.is_empty())
             ui.redraw()
 
             local char = vim.fn.getcharstr()
@@ -35,40 +33,45 @@ local function start()
             highlight.clear()
 
             if char == input.keys.best_match then
-                if matches[1] ~= nil then
-                    win.jump_to_pos(matches[1])
+                if search_ctx.current_match() then
+                    win.jump_to_pos(search_ctx.current_match())
                     search.regular_search(query)
                 end
 
                 return nil
-            end
-
-            if char == input.keys.cancel then
+            elseif char == input.keys.cancel then
                 return nil
+            elseif char == input.keys.next_match then
+                search_ctx.next_match()
+            elseif char == input.keys.prev_match then
+                search_ctx.prev_match()
             end
 
             return char
         end,
-        -- input handler (return false = break, true = continue)
+        -- input handler (return false = break)
         function(query, label)
-            if labeled_matches.has_key(label) then
-                local match = labeled_matches.value(label)
+            if labels_ctx.has_label(label) then
+                local match = labels_ctx.match(label)
                 win.jump_to_pos(match)
                 return false
             end
 
-            matches = search.search(query)
+            local matches = search.search(query)
+            search_ctx.reset(matches)
 
             highlight.matches(matches, query)
-            highlight.cursor(matches[1])
+            highlight.cursor(search_ctx.current_match())
 
-            labeled_matches = marker.label_matches(matches, query, label)
-            highlight.labels(labeled_matches, query)
+            labels_ctx.label_matches(matches, query)
+            labels_ctx.discard_irrelevant_labels(label)
+
+            highlight.labels(labels_ctx.labeled_matches(), query)
 
             return true
         end,
         -- get labels
-        function() return labeled_matches.keys() end
+        function() return labels_ctx.labels() end
     )
 
     dim.clear()

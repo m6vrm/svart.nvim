@@ -11,7 +11,7 @@ local function assert_eq(lhs, rhs, message)
 
     if lhs ~= rhs then
         local message = message or "assertion failed!"
-        assert(false, message .. " ( " .. lhs .. " != " .. rhs .. " ) ")
+        assert(false, message .. " ( " .. lhs .. " != " .. rhs .. " )")
     end
 end
 

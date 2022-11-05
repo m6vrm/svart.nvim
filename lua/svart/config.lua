@@ -3,6 +3,8 @@ return {
     key_best_match = "<CR>",
     key_delete_char = "<BS>",
     key_delete_word = "<C-W>",
+    key_next_match = "<C-N>",
+    key_prev_match = "<C-P>",
 
     label_atoms = { "j", "f", "k", "d", "l", "s", "a", "h", "g", "n", "u", "v", "r", "b", "y", "t", "m", "i", "c", "e", "o", "x", "w", "p", "q", "z" },
     label_max_len = 2,

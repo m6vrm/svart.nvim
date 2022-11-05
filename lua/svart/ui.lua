@@ -1,14 +1,9 @@
 local buf = require("svart.buf")
 local win = require("svart.win")
 
-local search_namespace = vim.api.nvim_create_namespace("svart-search")
-local dim_namespace = vim.api.nvim_create_namespace("svart-dim")
+local function highlight_cursor(pos, namespace, hl_group)
+    if pos == nil then return end
 
-local function highlight_cursor(pos)
-    local namespace = pos and search_namespace or dim_namespace
-    local hl_group = pos and "SvartMatchCursor" or "SvartDimmedCursor"
-
-    local pos = pos or win.cursor_pos()
     local char = buf.char_at(pos)
     local line, col = unpack(pos)
 
@@ -38,24 +33,25 @@ local function prompt()
 end
 
 local function dim()
+    local namespace = vim.api.nvim_create_namespace("svart-dim")
     local bounds = buf.visible_bounds()
 
     return {
         content = function()
             vim.highlight.range(
                 0,
-                dim_namespace,
+                namespace,
                 "SvartDimmedContent",
                 { bounds.top - 1, 0 },
                 { bounds.bottom - 1, -1 }
             )
 
-            highlight_cursor()
+            highlight_cursor(win.cursor_pos(), namespace, "SvartDimmedCursor")
         end,
         clear = function()
             vim.api.nvim_buf_clear_namespace(
                 0,
-                dim_namespace,
+                namespace,
                 bounds.top - 1,
                 bounds.bottom
             )
@@ -64,6 +60,7 @@ local function dim()
 end
 
 local function highlight()
+    local namespace = vim.api.nvim_create_namespace("svart-search")
     local bounds = buf.visible_bounds()
 
     return {
@@ -73,7 +70,7 @@ local function highlight()
 
                 vim.api.nvim_buf_add_highlight(
                     0,
-                    search_namespace,
+                    namespace,
                     "SvartMatch",
                     line - 1,
                     col - 1,
@@ -89,7 +86,7 @@ local function highlight()
                 for char in label:gmatch(".") do
                     vim.api.nvim_buf_set_extmark(
                         0,
-                        search_namespace,
+                        namespace,
                         line - 1,
                         col - 1 + #query + i,
                         {
@@ -105,12 +102,12 @@ local function highlight()
             end
         end,
         cursor = function(pos)
-            highlight_cursor(pos)
+            highlight_cursor(pos, namespace, "SvartMatchCursor")
         end,
         clear = function()
             vim.api.nvim_buf_clear_namespace(
                 0,
-                search_namespace,
+                namespace,
                 bounds.top - 1,
                 bounds.bottom
             )
