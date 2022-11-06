@@ -63,14 +63,14 @@ local function search(query)
     return matches
 end
 
-local function make_context(cursor_pos, wrap_around)
+local function make_context(cursor, wrap_around)
     local matches = {}
-    local current_index = 0
+    local current_idx = 0
     local current_match = nil
 
-    local set_current_index = function(index)
-        current_index = index
-        current_match = matches[index]
+    local set_current_index = function(idx)
+        current_idx = idx
+        current_match = matches[idx]
     end
 
     return {
@@ -96,8 +96,8 @@ local function make_context(cursor_pos, wrap_around)
             -- or set current match as the first match after the cursror
             -- todo: use nearest match to the cursor?
             for i, match in ipairs(matches) do
-                if (match[1] == cursor_pos[1] and match[2] >= cursor_pos[2])
-                    or match[1] > cursor_pos[1] then
+                if (match[1] == cursor[1] and match[2] >= cursor[2])
+                    or match[1] > cursor[1] then
                     set_current_index(i)
                     return
                 end
@@ -110,19 +110,19 @@ local function make_context(cursor_pos, wrap_around)
             return next(matches) == nil
         end,
         best_match = function()
-            return matches[current_index]
+            return matches[current_idx]
         end,
         next_match = function()
             -- next match with wraparound
-            if current_index == 0 then return end
-            local last_index = wrap_around and 1 or #matches
-            set_current_index(current_index >= #matches and last_index or current_index + 1)
+            if current_idx == 0 then return end
+            local last_idx = wrap_around and 1 or #matches
+            set_current_index(current_idx >= #matches and last_idx or current_idx + 1)
         end,
         prev_match = function()
             -- previous match with wraparound
-            if current_index == 0 then return end
-            local last_index = wrap_around and #matches or 1
-            set_current_index(current_index <= 1 and last_index or current_index - 1)
+            if current_idx == 0 then return end
+            local last_idx = wrap_around and #matches or 1
+            set_current_index(current_idx <= 1 and last_idx or current_idx - 1)
         end,
     }
 end

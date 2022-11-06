@@ -46,7 +46,7 @@ local function dim()
                 { bounds.bottom - 1, -1 }
             )
 
-            highlight_cursor(win.cursor_pos(), namespace, "SvartDimmedCursor")
+            highlight_cursor(win.cursor(), namespace, "SvartDimmedCursor")
         end,
         clear = function()
             vim.api.nvim_buf_clear_namespace(

@@ -34,14 +34,14 @@ local function direction(from, to)
     end
 end
 
-local function cursor_pos()
+local function cursor()
     local pos = vim.api.nvim_win_get_cursor(0)
     local line, col = unpack(pos)
     return { line, col + 1 }
 end
 
-local function jump_to_pos(pos)
-    local direction = direction(cursor_pos(), pos)
+local function jump_to(pos)
+    local direction = direction(cursor(), pos)
     local line, col = unpack(pos)
     vim.api.nvim_win_set_cursor(0, { line, col - 1 })
 
@@ -51,8 +51,35 @@ local function jump_to_pos(pos)
     end
 end
 
+local function run_on(win_id, win_handler)
+    local saved_win_id = vim.fn.win_getid()
+    vim.api.nvim_set_current_win(win_id)
+
+    local result = win_handler()
+
+    vim.api.nvim_set_current_win(saved_win_id)
+    return result
+end
+
+local function make_context()
+    local wins = { vim.fn.win_getid() }
+
+    return {
+        for_each = function(win_handler)
+            local saved_win_id = vim.fn.win_getid()
+
+            for _, win_id in ipairs(wins) do
+                vim.api.nvim_set_current_win(win_id)
+                win_handler(win_id)
+            end
+
+            vim.api.nvim_set_current_win(saved_win_id)
+        end,
+    }
+end
+
 return {
     save_view_state = save_view_state,
-    jump_to_pos = jump_to_pos,
-    cursor_pos = cursor_pos,
+    jump_to = jump_to,
+    cursor = cursor,
 }

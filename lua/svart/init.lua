@@ -13,7 +13,7 @@ local function accept_match(match, query, labels_ctx)
     assert(query ~= nil)
     assert(labels_ctx ~= nil)
 
-    win.jump_to_pos(match)
+    win.jump_to(match)
 
     if config.search_begin_regular then
         search.regular_search(query)
@@ -32,7 +32,7 @@ end
 local function start(query, labels_ctx)
     local query = query or ""
 
-    local search_ctx = search.make_context(win.cursor_pos(), config.search_wrap_around)
+    local search_ctx = search.make_context(win.cursor(), config.search_wrap_around)
     local labels_ctx = labels_ctx or labels.make_context()
 
     local prompt = ui.prompt()
