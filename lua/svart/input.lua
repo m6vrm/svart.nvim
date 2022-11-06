@@ -32,8 +32,12 @@ local function is_label(possible_label, labels)
 end
 
 local function wait_for_input(query, get_labels, get_char, input_handler)
-    local query = query
+    local query = query or ""
     local label = ""
+
+    if query ~= "" then
+        input_handler(query, label)
+    end
 
     while true do
         local char = get_char(query, label)

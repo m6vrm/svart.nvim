@@ -18,7 +18,9 @@ local function save_view_state()
     }
 end
 
-local function direction(from, to) -- 1 = forward, -1 = backwards, 0 = none
+-- 1 = forward, -1 = backwards, 0 = none
+-- todo: write tests
+local function direction(from, to)
     if to[1] > from[1] then
         return 1
     elseif to[1] < from[1] then
@@ -43,6 +45,7 @@ local function jump_to_pos(pos)
     local line, col = unpack(pos)
     vim.api.nvim_win_set_cursor(0, { line, col - 1 })
 
+    -- todo: OP-mode on EOF doesn't work properly
     if is_op_mode() and direction ~= -1 then
         push_cursor()
     end

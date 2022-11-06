@@ -6,17 +6,30 @@ local search = require("svart.search")
 local labels = require("svart.labels")
 local win = require("svart.win")
 
+local prev_query = ""
+local prev_labels_ctx = nil
+
+local function accept_match(match, query, labels_ctx)
+    assert(query ~= nil)
+    assert(labels_ctx ~= nil)
+
+    win.jump_to_pos(match)
+
+    prev_query = query
+    prev_labels_ctx = labels_ctx
+end
+
 local function setup(overrides)
     for key, value in pairs(overrides) do
         config[key] = value
     end
 end
 
-local function start(query)
+local function start(query, labels_ctx)
     local query = query or ""
 
     local search_ctx = search.make_context(win.cursor_pos())
-    local labels_ctx = labels.make_context()
+    local labels_ctx = labels_ctx or labels.make_context()
 
     local prompt = ui.prompt()
     local dim = ui.dim()
@@ -38,8 +51,9 @@ local function start(query)
             highlight.clear()
 
             if char == input.keys.best_match then
-                if search_ctx.best_match() then
-                    win.jump_to_pos(search_ctx.best_match())
+                if search_ctx.best_match() ~= nil then
+                    local match = search_ctx.best_match()
+                    accept_match(match, query, labels_ctx)
                     search.regular_search(query)
                 end
 
@@ -58,7 +72,7 @@ local function start(query)
         function(query, label)
             if labels_ctx.has_label(label) then
                 local match = labels_ctx.match(label)
-                win.jump_to_pos(match)
+                accept_match(match, query, labels_ctx)
                 return false
             end
 
@@ -80,6 +94,7 @@ local function start(query)
 end
 
 function do_repeat()
+    start(prev_query, prev_labels_ctx)
 end
 
 return {

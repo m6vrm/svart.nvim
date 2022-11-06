@@ -13,6 +13,7 @@ local function make_labels_pool(atoms, min_count, max_len)
                 return false
             end
         end
+
         return true
     end
 
@@ -130,11 +131,18 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
 end
 
 local function discard_irrelevant_labels(labeled_matches, current_label)
-    if current_label == "" then return end
-
     for label, _ in labeled_matches.pairs() do
         if not utils.string_prefix(label, current_label) then
             labeled_matches.remove_key(label)
+        end
+    end
+end
+
+-- todo: write tests
+local function discard_offscreen_labels(labeled_matches, bounds)
+    for label, match in labeled_matches.pairs() do
+        if match[1] < bounds.top or match[1] > bounds.bottom then
+            labeled_matches.remove_value(match)
         end
     end
 end
@@ -148,35 +156,35 @@ local function make_context()
 
     return {
         label_matches = function(matches, query, label)
-            if query == "" then
+            if #query < config.label_min_query_len then
                 history = {}
+                labeled_matches = utils.make_bimap()
+                return
             end
+
+            local bounds = buf.visible_bounds()
 
             labeled_matches = history[query] ~= nil
                 and history[query].copy()
                 or utils.make_bimap()
 
-            if #query < config.label_min_query_len then
-                return labeled_matches
-            end
+            discard_offscreen_labels(labeled_matches, bounds)
 
-            if history[query] == nil then
-                local matches = { unpack(matches) }
-                local labels_pool = make_labels_pool(atoms, #matches, config.label_max_len)
+            local matches = { unpack(matches) }
+            local labels_pool = make_labels_pool(atoms, #matches, config.label_max_len)
 
-                local prev_query = query:sub(1, -2)
-                local prev_labeled_matches = history[prev_query] ~= nil
-                    and history[prev_query].copy()
-                    or utils.make_bimap()
+            local prev_query = query:sub(1, -2)
+            local prev_labeled_matches = history[prev_query] ~= nil
+              and history[prev_query].copy()
+               or utils.make_bimap()
 
-                sort_matches(matches, buf.visible_bounds())
-                discard_conflicting_labels(labels_pool, matches, query, buf)
-                label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+            sort_matches(matches, bounds)
+            discard_conflicting_labels(labels_pool, matches, query, buf)
+            label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
 
-                history[query] = labeled_matches.copy()
-            end
+            history[query] = labeled_matches.copy()
 
-            if config.label_hide_irrelevant then
+            if config.label_hide_irrelevant and label ~= "" then
                 discard_irrelevant_labels(labeled_matches, label)
             end
         end,

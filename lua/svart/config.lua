@@ -1,3 +1,4 @@
+-- todo: write comments
 return {
     key_cancel = "<Esc>",
     key_delete_char = "<BS>",
