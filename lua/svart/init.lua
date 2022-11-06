@@ -15,6 +15,10 @@ local function accept_match(match, query, labels_ctx)
 
     win.jump_to_pos(match)
 
+    if config.search_begin_regular then
+        search.regular_search(query)
+    end
+
     prev_query = query
     prev_labels_ctx = labels_ctx
 end
@@ -28,7 +32,7 @@ end
 local function start(query, labels_ctx)
     local query = query or ""
 
-    local search_ctx = search.make_context(win.cursor_pos())
+    local search_ctx = search.make_context(win.cursor_pos(), config.search_wrap_around)
     local labels_ctx = labels_ctx or labels.make_context()
 
     local prompt = ui.prompt()
@@ -51,18 +55,20 @@ local function start(query, labels_ctx)
             highlight.clear()
 
             if char == input.keys.best_match then
+                -- accept current match and jump to it
                 if search_ctx.best_match() ~= nil then
                     local match = search_ctx.best_match()
                     accept_match(match, query, labels_ctx)
-                    search.regular_search(query)
                 end
 
                 return nil
             elseif char == input.keys.cancel then
                 return nil
             elseif char == input.keys.next_match then
+                -- move cursor to the next match
                 search_ctx.next_match()
             elseif char == input.keys.prev_match then
+                -- move cursor to the previous match
                 search_ctx.prev_match()
             end
 
@@ -70,6 +76,7 @@ local function start(query, labels_ctx)
         end,
         -- input handler (return false = break)
         function(query, label)
+            -- jump to the label
             if labels_ctx.has_label(label) then
                 local match = labels_ctx.match(label)
                 accept_match(match, query, labels_ctx)

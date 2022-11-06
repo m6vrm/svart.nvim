@@ -21,6 +21,7 @@ function M.string_prefix(string, prefix)
     return string:sub(1, #prefix) == prefix
 end
 
+-- bidirectional map (https://www.boost.org/doc/libs/1_79_0/libs/bimap/doc/html/index.html)
 function M.make_bimap(keys_to_values, values_to_keys, count)
     local value_to_string = function(value) return vim.inspect(value) end
 

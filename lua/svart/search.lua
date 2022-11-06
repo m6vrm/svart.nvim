@@ -18,6 +18,7 @@ local function directional_search(query, backwards, bounds)
     local first_search = true
 
     return function()
+        -- capture match under cursor on first search
         local cursor_match_flag = first_search and not backwards and "c" or ""
         first_search = false
 
@@ -35,9 +36,7 @@ local function directional_search(query, backwards, bounds)
 end
 
 local function regular_search(query)
-    if query == "" then
-        return
-    end
+    if query == "" then return end
 
     local saved_view_state = win.save_view_state()
     local regex = search_regex(query)
@@ -51,10 +50,12 @@ local function search(query)
     local bounds = buf.visible_bounds()
     local matches = {}
 
+    -- search forward
     for match in directional_search(query, false, bounds) do
         table.insert(matches, match)
     end
 
+    -- then search backwards
     for match in directional_search(query, true, bounds) do
         table.insert(matches, match)
     end
@@ -62,7 +63,7 @@ local function search(query)
     return matches
 end
 
-local function make_context(cursor_pos)
+local function make_context(cursor_pos, wrap_around)
     local matches = {}
     local current_index = 0
     local current_match = nil
@@ -76,11 +77,13 @@ local function make_context(cursor_pos)
         reset = function(new_matches)
             matches = { unpack(new_matches) }
 
+            -- sort matches by line number for easier navigation
             table.sort(matches, function(match1, match2)
                 if match1[1] ~= match2[1] then return match1[1] < match2[1] end
                 return match1[2] < match2[2]
             end)
 
+            -- don't change current match if it's equal to the previous one
             for i, match in ipairs(matches) do
                 if current_match ~= nil
                     and match[1] == current_match[1]
@@ -90,6 +93,8 @@ local function make_context(cursor_pos)
                 end
             end
 
+            -- or set current match as the first match after the cursror
+            -- todo: use nearest match to the cursor?
             for i, match in ipairs(matches) do
                 if (match[1] == cursor_pos[1] and match[2] >= cursor_pos[2])
                     or match[1] > cursor_pos[1] then
@@ -98,6 +103,7 @@ local function make_context(cursor_pos)
                 end
             end
 
+            -- or set current match to the first one
             set_current_index(next(matches) == nil and 0 or 1)
         end,
         is_empty = function()
@@ -107,12 +113,16 @@ local function make_context(cursor_pos)
             return matches[current_index]
         end,
         next_match = function()
+            -- next match with wraparound
             if current_index == 0 then return end
-            set_current_index(current_index >= #matches and 1 or current_index + 1)
+            local last_index = wrap_around and 1 or #matches
+            set_current_index(current_index >= #matches and last_index or current_index + 1)
         end,
         prev_match = function()
+            -- previous match with wraparound
             if current_index == 0 then return end
-            set_current_index(current_index <= 1 and #matches or current_index - 1)
+            local last_index = wrap_around and #matches or 1
+            set_current_index(current_index <= 1 and last_index or current_index - 1)
         end,
     }
 end
@@ -129,7 +139,7 @@ local function test()
     -- make_context
     do
         -- empty
-        local ctx = make_context({ 2, 1 })
+        local ctx = make_context({ 2, 1 }, true)
         assert(ctx.is_empty())
         tests.assert_eq(ctx.best_match(), nil)
 
@@ -158,6 +168,20 @@ local function test()
 
         -- clear best match
         ctx.reset({ { 1, 1 } })
+        tests.assert_eq(ctx.best_match(), { 1, 1 })
+
+        -- wrap around disabled
+        ctx = make_context({ 2, 1 }, false)
+        ctx.reset({ { 1, 1 }, { 3, 1 } })
+
+        ctx.next_match()
+        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        ctx.next_match()
+        tests.assert_eq(ctx.best_match(), { 3, 1 })
+
+        ctx.prev_match()
+        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        ctx.prev_match()
         tests.assert_eq(ctx.best_match(), { 1, 1 })
     end
 end

@@ -8,6 +8,8 @@ local function make_labels_pool(atoms, min_count, max_len)
     local discarded = {}
 
     local available = function(label)
+        -- label isn't available if it's prefix
+        -- exists in the discarded labels list
         for discarded_label, _ in pairs(discarded) do
             if utils.string_prefix(label, discarded_label) then
                 return false
@@ -25,15 +27,18 @@ local function make_labels_pool(atoms, min_count, max_len)
             local tail = {}
 
             if labels.first() == nil then
+                -- first time generate labels from atoms directly
                 for _, atom in ipairs(atoms) do
                     if available(atom) then
                         table.insert(tail, atom)
                     end
                 end
             else
+                -- then concatenate atoms one to another to create more labels
                 for _, label in labels.pairs() do
                     for _, atom in ipairs(atoms) do
-                        if atom ~= label:sub(-#atom) then
+                        if atom ~= label:sub(-#atom) then -- skip atom if it's equal
+                                                          -- to the label's last char
                             local new_label = label .. atom
 
                             if #new_label <= max_len and available(new_label) then
@@ -44,11 +49,14 @@ local function make_labels_pool(atoms, min_count, max_len)
                 end
             end
 
+            -- nothing generated, break to prevent infinite loop
             if next(tail) == nil then
                 return
             end
 
             for _, label in ipairs(tail) do
+                -- add freshly generated label to the pool
+                -- and remove it's prefix from the pool to avoid ambiguity
                 local prefix = label:sub(1, -2)
                 labels.remove_value(prefix)
                 labels.append(label)
@@ -80,6 +88,7 @@ local function make_labels_pool(atoms, min_count, max_len)
 end
 
 local function sort_matches(matches, bounds)
+    -- sort labels by distance to the middle line
     local middle_line = math.floor(bounds.top + (bounds.bottom - bounds.top) / 2)
 
     table.sort(matches, function(match1, match2)
@@ -93,6 +102,7 @@ local function sort_matches(matches, bounds)
 end
 
 local function discard_conflicting_labels(labels_pool, matches, query, buf)
+    -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
         local line_nr, col = unpack(match)
         local line = buf.line_at(line_nr)
@@ -105,6 +115,7 @@ local function discard_conflicting_labels(labels_pool, matches, query, buf)
 end
 
 local function label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+    -- first try to take lables from previous search
     for _, match in ipairs(matches) do
         local label = prev_labeled_matches.key(match)
 
@@ -114,6 +125,7 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
         end
     end
 
+    -- then take labels from the pool
     for _, match in ipairs(matches) do
         local label = labels_pool.first()
 
@@ -123,7 +135,8 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
 
             if prev_label == nil then
                 labeled_matches.set(label, match)
-            elseif #label < #prev_label then
+            elseif #label < #prev_label then -- replace label from previous
+                                             -- search with shorter one
                 labeled_matches.replace(prev_label, label, match)
             end
         end
@@ -131,6 +144,7 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
 end
 
 local function discard_irrelevant_labels(labeled_matches, current_label)
+    -- discard irrelevant labels after start typing label to go to
     for label, _ in labeled_matches.pairs() do
         if not utils.string_prefix(label, current_label) then
             labeled_matches.remove_key(label)
@@ -140,6 +154,7 @@ end
 
 -- todo: write tests
 local function discard_offscreen_labels(labeled_matches, bounds)
+    -- discard labels out of current screen bounds
     for label, match in labeled_matches.pairs() do
         if match[1] < bounds.top or match[1] > bounds.bottom then
             labeled_matches.remove_value(match)
@@ -151,11 +166,13 @@ local function make_context()
     local history = {}
     local labeled_matches = utils.make_bimap()
 
+    -- convert atoms string to array
     local atoms = {}
     config.label_atoms:gsub(".", function(char) table.insert(atoms, char) end)
 
     return {
         label_matches = function(matches, query, label)
+            -- query too short to label matches, break
             if #query < config.label_min_query_len then
                 history = {}
                 labeled_matches = utils.make_bimap()

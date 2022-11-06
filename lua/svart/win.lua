@@ -18,7 +18,7 @@ local function save_view_state()
     }
 end
 
--- 1 = forward, -1 = backwards, 0 = none
+-- 1 = forward, -1 = backward, 0 = none
 -- todo: write tests
 local function direction(from, to)
     if to[1] > from[1] then

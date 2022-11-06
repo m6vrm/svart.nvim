@@ -18,10 +18,11 @@ local function is_printable(char)
     local char_nr = vim.fn.char2nr(char)
 
     return type(char_nr) == "number"
-        and ((char_nr >= 32 and char_nr <= 126) or char_nr > 159)
+       and ((char_nr >= 32 and char_nr <= 126) or char_nr > 159)
 end
 
 local function is_label(possible_label, labels)
+    -- todo: use some kind of map for faster search
     for _, label in ipairs(labels) do
         if utils.string_prefix(label, possible_label) then
             return true
@@ -35,6 +36,7 @@ local function wait_for_input(query, get_labels, get_char, input_handler)
     local query = query or ""
     local label = ""
 
+    -- trigger handler once if query is not empty
     if query ~= "" then
         input_handler(query, label)
     end
@@ -47,12 +49,14 @@ local function wait_for_input(query, get_labels, get_char, input_handler)
         end
 
         if char == keys.delete_char then
+            -- delete last char form label or query
             if label ~= "" then
                 label = label:sub(1, -2)
             else
                 query = query:sub(1, -2)
             end
         elseif char == keys.delete_word then
+            -- delete whole label or last char from query
             local delete_word_regex = [=[\v[[:keyword:]]\zs[^[:keyword:]]+$|[[:keyword:]]+$]=]
 
             if label ~= "" then
