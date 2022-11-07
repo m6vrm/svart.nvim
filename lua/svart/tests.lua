@@ -4,7 +4,9 @@ local function test(module)
     print(module .. " test passed")
 end
 
-local function assert_eq(lhs, rhs, message)
+local M = {}
+
+function M.assert_eq(lhs, rhs, message)
     local lhs = vim.inspect(lhs)
     local rhs = vim.inspect(rhs)
 
@@ -14,13 +16,10 @@ local function assert_eq(lhs, rhs, message)
     end
 end
 
-local function run()
+function M.run()
     test("svart.utils")
     test("svart.labels")
     test("svart.search")
 end
 
-return {
-    assert_eq = assert_eq,
-    run = run,
-}
+return M

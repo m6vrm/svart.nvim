@@ -1,5 +1,4 @@
 local utils = require("svart.utils")
-local buf = require("svart.buf")
 local win = require("svart.win")
 
 local function search_regex(query)
@@ -35,7 +34,9 @@ local function directional_search(query, backwards, bounds)
     end
 end
 
-local function regular_search(query)
+local M = {}
+
+function M.regular_search(query)
     if query == "" then return end
 
     local saved_view_state = win.save_view_state()
@@ -46,7 +47,7 @@ local function regular_search(query)
     saved_view_state.restore()
 end
 
-local function search(win_ctx, query)
+function M.search(query, win_ctx, win, buf)
     local matches = {
         count = 0,
         wins = {},
@@ -82,82 +83,90 @@ local function search(win_ctx, query)
     return matches
 end
 
-local function make_context(cursor, wrap_around)
+function M.make_context(config, win)
     local matches = {}
     local current_idx = 0
     local current_match = nil
+
+    local cursor = win.cursor()
 
     local set_current_index = function(idx)
         current_idx = idx
         current_match = matches[idx]
     end
 
-    return {
-        reset = function(new_matches)
-            matches = {}
+    local this = {}
 
-            -- collect matches from all windows
-            for _, win_matches in ipairs(new_matches.wins) do
-                local matches_copy = { unpack(win_matches.list) }
+    this.reset = function(new_matches)
+        matches = {}
 
-                -- sort matches by line number for easier navigation
-                table.sort(matches_copy, function(match1, match2)
-                    if match1.line ~= match2.line then return match1.line < match2.line end
-                    return match1.col < match2.col
-                end)
+        -- collect matches from all windows
+        for _, win_matches in ipairs(new_matches.wins) do
+            local matches_copy = { unpack(win_matches.list) }
 
-                for _, match in ipairs(matches_copy) do
-                    table.insert(matches, match)
-                end
+            -- sort matches by line number for easier navigation
+            table.sort(matches_copy, function(match1, match2)
+                if match1.line ~= match2.line then return match1.line < match2.line end
+                return match1.col < match2.col
+            end)
+
+            for _, match in ipairs(matches_copy) do
+                table.insert(matches, match)
+            end
+        end
+
+        -- don't change current match if it's equal to the previous one
+        for i, match in ipairs(matches) do
+            if current_match ~= nil
+                and match.win_id == current_match.win_id
+                and match.line == current_match.line
+                and match.col == current_match.col then
+                set_current_index(i)
+                return
+            end
+        end
+
+        -- or set current match to the first match after the cursror
+        local last_idx = 0
+
+        for i, match in ipairs(matches) do
+            if (match.line == cursor.line and match.col >= cursor.col)
+                or match.line > cursor.line then
+                set_current_index(i)
+                return
             end
 
-            -- don't change current match if it's equal to the previous one
-            for i, match in ipairs(matches) do
-                if current_match ~= nil
-                    and match.win_id == current_match.win_id
-                    and match.line == current_match.line
-                    and match.col == current_match.col then
-                    set_current_index(i)
-                    return
-                end
-            end
+            last_idx = i
+        end
 
-            -- or set current match to the first match after the cursror
-            local last_idx = 0
+        -- or set current match to the nearest to the cursor
+        set_current_index(last_idx)
+    end
 
-            for i, match in ipairs(matches) do
-                if (match.line == cursor.line and match.col >= cursor.col)
-                    or match.line > cursor.line then
-                    set_current_index(i)
-                    return
-                end
+    this.is_empty = function()
+        return next(matches) == nil
+    end
 
-                last_idx = i
-            end
+    this.best_match = function()
+        return matches[current_idx]
+    end
 
-            -- or set current match to the nearest to the cursor
-            set_current_index(last_idx)
-        end,
-        is_empty = function()
-            return next(matches) == nil
-        end,
-        best_match = function()
-            return matches[current_idx]
-        end,
-        next_match = function()
-            if current_idx == 0 then return end
-            local last_idx = wrap_around and 1 or #matches
-            set_current_index(current_idx >= #matches and last_idx or current_idx + 1)
-        end,
-        prev_match = function()
-            if current_idx == 0 then return end
-            local last_idx = wrap_around and #matches or 1
-            set_current_index(current_idx <= 1 and last_idx or current_idx - 1)
-        end,
-    }
+    this.next_match = function()
+        if current_idx == 0 then return end
+        local last_idx = config.search_wrap_around and 1 or #matches
+        set_current_index(current_idx >= #matches and last_idx or current_idx + 1)
+    end
+
+    this.prev_match = function()
+        if current_idx == 0 then return end
+        local last_idx = config.search_wrap_around and #matches or 1
+        set_current_index(current_idx <= 1 and last_idx or current_idx - 1)
+    end
+
+    return this
 end
 
-local function test()
+function M.test()
     local tests = require("svart.tests")
 
     -- search_regex
@@ -216,9 +225,4 @@ local function test()
     end
 end
 
-return {
-    regular_search = regular_search,
-    search = search,
-    make_context = make_context,
-    test = test,
-}
+return M

@@ -1,9 +1,10 @@
+local buf = require("svart.buf")
 local config = require("svart.config")
-local utils = require("svart.utils")
 local input = require("svart.input")
-local ui = require("svart.ui")
-local search = require("svart.search")
 local labels = require("svart.labels")
+local search = require("svart.search")
+local ui = require("svart.ui")
+local utils = require("svart.utils")
 local win = require("svart.win")
 
 local prev_query = ""
@@ -23,18 +24,20 @@ local function accept_match(match, query, labels_ctx)
     prev_labels_ctx = labels_ctx
 end
 
-local function setup(overrides)
+local M = {}
+
+function M.setup(overrides)
     for key, value in pairs(overrides) do
         config[key] = value
     end
 end
 
-local function start(query, labels_ctx)
+function M.start(query, labels_ctx)
     local query = query or ""
 
     local win_ctx = win.make_context()
-    local search_ctx = search.make_context(win.cursor(), config.search_wrap_around)
-    local labels_ctx = labels_ctx or labels.make_context()
+    local search_ctx = search.make_context(config, win)
+    local labels_ctx = labels_ctx or labels.make_context(config, buf, win)
 
     local prompt = ui.prompt()
     local dim = ui.dim(win_ctx)
@@ -84,7 +87,7 @@ local function start(query, labels_ctx)
                 return false
             end
 
-            local matches = search.search(win_ctx, query)
+            local matches = search.search(query, win_ctx, win, buf)
 
             search_ctx.reset(matches)
             labels_ctx.label_matches(matches, query, label)
@@ -101,12 +104,8 @@ local function start(query, labels_ctx)
     prompt.clear()
 end
 
-function do_repeat()
+function M.do_repeat()
     start(prev_query, prev_labels_ctx)
 end
 
-return {
-    setup = setup,
-    start = start,
-    do_repeat = do_repeat,
-}
+return M

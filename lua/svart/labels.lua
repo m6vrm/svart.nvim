@@ -1,7 +1,4 @@
-local config = require("svart.config")
 local utils = require("svart.utils")
-local buf = require("svart.buf")
-local win = require("svart.win")
 
 local function make_labels_pool(atoms, min_count, max_len)
     local generated = false
@@ -69,23 +66,28 @@ local function make_labels_pool(atoms, min_count, max_len)
         end
     end
 
-    return {
-        available = available,
-        discard = function(label)
-            assert(not generated)
-            assert(label ~= nil)
-            assert(label ~= "")
-            discarded[label] = true
-        end,
-        first = function()
-            generate_labels_if_needed()
-            return labels.first()
-        end,
-        take = function()
-            generate_labels_if_needed()
-            return labels.drop_first()
-        end,
-    }
+    local this = {}
+
+    this.available = available
+
+    this.discard = function(label)
+        assert(not generated)
+        assert(label ~= nil)
+        assert(label ~= "")
+        discarded[label] = true
+    end
+
+    this.first = function()
+        generate_labels_if_needed()
+        return labels.first()
+    end
+
+    this.take = function()
+        generate_labels_if_needed()
+        return labels.drop_first()
+    end
+
+    return this
 end
 
 local function sort_matches(matches, bounds)
@@ -157,16 +159,30 @@ local function discard_irrelevant_labels(labeled_matches, current_label)
 end
 
 -- todo: write tests
+local function discard_offwindow_labels(labeled_matches, win_ids)
+    -- discard labels from windows that not in the win_ids list
+    for _, win_id in ipairs(win_ids) do
+        for _, match in labeled_matches.pairs() do
+            if match.win_id ~= win_id then
+                labeled_matches.remove_value(match)
+            end
+        end
+    end
+end
+
+-- todo: write tests
 local function discard_offscreen_labels(labeled_matches, bounds)
-    -- discard labels out of current screen bounds
-    for label, match in labeled_matches.pairs() do
+    -- discard labels out of the current visible bounds
+    for _, match in labeled_matches.pairs() do
         if match.line < bounds.top or match.line > bounds.bottom then
             labeled_matches.remove_value(match)
         end
     end
 end
 
-local function make_context()
+local M = {}
+
+function M.make_context(config, buf, win)
     local history = {}
     local labeled_matches = utils.make_bimap()
 
@@ -174,66 +190,77 @@ local function make_context()
     local atoms = {}
     config.label_atoms:gsub(".", function(char) table.insert(atoms, char) end)
 
-    return {
-        label_matches = function(matches, query, label)
-            -- query too short to label matches, break
-            if #query < config.label_min_query_len then
-                history = {}
-                labeled_matches = utils.make_bimap()
-                return
-            end
+    local this = {}
 
-            labeled_matches = history[query] ~= nil
-                and history[query].copy()
-                or utils.make_bimap()
+    this.label_matches = function(matches, query, label)
+        -- query too short to label matches, break
+        if #query < config.label_min_query_len then
+            history = {}
+            labeled_matches = utils.make_bimap()
+            return
+        end
 
-            -- labels from previous search
-            local prev_query = query:sub(1, -2)
-            local prev_labeled_matches = history[prev_query] ~= nil
-                and history[prev_query].copy()
-                or utils.make_bimap()
+        labeled_matches = history[query] ~= nil
+        and history[query].copy()
+        or utils.make_bimap()
 
-            local labels_pool = make_labels_pool(atoms, matches.count, config.label_max_len)
+        -- labels from previous search
+        local prev_query = query:sub(1, -2)
+        local prev_labeled_matches = history[prev_query] ~= nil
+        and history[prev_query].copy()
+        or utils.make_bimap()
 
-            for _, win_matches in ipairs(matches.wins) do
-                win.run_on(win_matches.win_id, function()
-                    discard_offscreen_labels(labeled_matches, win_matches.bounds)
-                    discard_conflicting_labels(labels_pool, win_matches.list, query, buf)
-                    label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
-                end)
-            end
+        local labels_pool = make_labels_pool(atoms, matches.count, config.label_max_len)
 
-            for _, win_matches in ipairs(matches.wins) do
-                win.run_on(win_matches.win_id, function()
-                    -- todo: support different sort strategies
-                    -- todo: allow to spread short labels between windows
-                    sort_matches(win_matches.list, win_matches.bounds)
-                    label_matches(win_matches.list, labels_pool, labeled_matches)
-                end)
-            end
+        for _, win_matches in ipairs(matches.wins) do
+            win.run_on(win_matches.win_id, function()
+                discard_offscreen_labels(labeled_matches, win_matches.bounds)
+                discard_conflicting_labels(labels_pool, win_matches.list, query, buf)
+                label_prev_matches(win_matches.list, labels_pool, prev_labeled_matches, labeled_matches)
+            end)
+        end
 
-            history[query] = labeled_matches.copy()
+        for _, win_matches in ipairs(matches.wins) do
+            win.run_on(win_matches.win_id, function()
+                -- todo: make labels independent from current window
+                sort_matches(win_matches.list, win_matches.bounds)
+                label_matches(win_matches.list, labels_pool, labeled_matches)
+            end)
+        end
 
-            if config.label_hide_irrelevant and label ~= "" then
-                discard_irrelevant_labels(labeled_matches, label)
-            end
-        end,
-        labeled_matches = function()
-            return labeled_matches
-        end,
-        labels = function()
-            return labeled_matches.keys()
-        end,
-        has_label = function(label)
-            return labeled_matches.has_key(label)
-        end,
-        match = function(label)
-            return labeled_matches.value(label)
-        end,
-    }
+        history[query] = labeled_matches.copy()
+
+        -- todo: forbid jumping to other windows
+        if win.is_op_mode() or win.is_visual_mode() then
+            local win_ids = win.current_buf_win_ids()
+            discard_offwindow_labels(labeled_matches, win_ids)
+        end
+
+        if config.label_hide_irrelevant and label ~= "" then
+            discard_irrelevant_labels(labeled_matches, label)
+        end
+    end
+
+    this.labeled_matches = function()
+        return labeled_matches
+    end
+
+    this.labels = function()
+        return labeled_matches.keys()
+    end
+
+    this.has_label = function(label)
+        return labeled_matches.has_key(label)
+    end
+
+    this.match = function(label)
+        return labeled_matches.value(label)
+    end
+
+    return this
 end
 
-local function test()
+function M.test()
     local tests = require("svart.tests")
 
     -- make_labels_pool
@@ -342,7 +369,4 @@ local function test()
     end
 end
 
-return {
-    make_context = make_context,
-    test = test,
-}
+return M
