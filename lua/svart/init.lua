@@ -24,6 +24,15 @@ local function accept_match(match, query, labels_ctx)
     prev_labels_ctx = labels_ctx
 end
 
+local function excluded_win_ids()
+    if win.is_op_mode() or win.is_visual_mode() then
+        local win_ids = win.other_buf_win_ids()
+        return utils.table_flip(win_ids)
+    end
+
+    return {}
+end
+
 local M = {}
 
 function M.setup(overrides)
@@ -34,10 +43,11 @@ end
 
 function M.start(query, labels_ctx)
     local query = query or ""
+    local excluded_win_ids = excluded_win_ids()
 
     local win_ctx = win.make_context()
-    local search_ctx = search.make_context(config, win)
-    local labels_ctx = labels_ctx or labels.make_context(config, buf, win)
+    local search_ctx = search.make_context(config, win, excluded_win_ids)
+    local labels_ctx = labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
 
     local prompt = ui.prompt()
     local dim = ui.dim(win_ctx)
@@ -105,7 +115,7 @@ function M.start(query, labels_ctx)
 end
 
 function M.do_repeat()
-    start(prev_query, prev_labels_ctx)
+    M.start(prev_query, prev_labels_ctx)
 end
 
 return M

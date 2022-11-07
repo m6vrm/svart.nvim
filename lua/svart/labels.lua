@@ -159,13 +159,11 @@ local function discard_irrelevant_labels(labeled_matches, current_label)
 end
 
 -- todo: write tests
-local function discard_offwindow_labels(labeled_matches, win_ids)
-    -- discard labels from windows that not in the win_ids list
-    for _, win_id in ipairs(win_ids) do
-        for _, match in labeled_matches.pairs() do
-            if match.win_id ~= win_id then
-                labeled_matches.remove_value(match)
-            end
+local function discard_offwindow_labels(labeled_matches, excluded_win_ids)
+    -- discard labels from excluded windows
+    for _, match in labeled_matches.pairs() do
+        if excluded_win_ids[match.win_id] ~= nil then
+            labeled_matches.remove_value(match)
         end
     end
 end
@@ -182,7 +180,7 @@ end
 
 local M = {}
 
-function M.make_context(config, buf, win)
+function M.make_context(config, buf, win, excluded_win_ids)
     local history = {}
     local labeled_matches = utils.make_bimap()
 
@@ -230,11 +228,7 @@ function M.make_context(config, buf, win)
 
         history[query] = labeled_matches.copy()
 
-        -- todo: forbid jumping to other windows
-        if win.is_op_mode() or win.is_visual_mode() then
-            local win_ids = win.current_buf_win_ids()
-            discard_offwindow_labels(labeled_matches, win_ids)
-        end
+        discard_offwindow_labels(labeled_matches, excluded_win_ids)
 
         if config.label_hide_irrelevant and label ~= "" then
             discard_irrelevant_labels(labeled_matches, label)

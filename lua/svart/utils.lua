@@ -1,19 +1,34 @@
 local M = {}
 
-function M.keys(table_)
+function M.table_keys(table_)
     local keys = {}
+
     for key, _ in pairs(table_) do
         table.insert(keys, key)
     end
+
     return keys
 end
 
-function M.values(table_)
+function M.table_values(table_)
     local values = {}
+
     for _, value in pairs(table_) do
         table.insert(values, value)
     end
+
     return values
+end
+
+-- todo: write tests
+function M.table_flip(table_)
+    local flipped = {}
+
+    for _, value in pairs(table_) do
+        flipped[value] = true
+    end
+
+    return flipped
 end
 
 function M.string_prefix(string, prefix)
@@ -64,11 +79,11 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
     end
 
     this.keys = function()
-        return M.values(values_to_keys)
+        return M.table_values(values_to_keys)
     end
 
     this.values = function()
-        return M.values(keys_to_values)
+        return M.table_values(keys_to_values)
     end
 
     this.value = function(key)
@@ -158,21 +173,21 @@ end
 function M.test()
     local tests = require("svart.tests")
 
-    -- keys
+    -- table_keys
     do
-        local keys = M.keys({ k1 = 1, k2 = 2, k3 = 3 })
+        local keys = M.table_keys({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#keys, 3)
 
-        keys = M.keys({ "v1", "v2", "v3" })
+        keys = M.table_keys({ "v1", "v2", "v3" })
         tests.assert_eq(keys, { 1, 2, 3 })
     end
 
-    -- values
+    -- table_values
     do
-        local values = M.values({ k1 = 1, k2 = 2, k3 = 3 })
+        local values = M.table_values({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#values, 3)
 
-        values = M.values({ "v1", "v2", "v3" })
+        values = M.table_values({ "v1", "v2", "v3" })
         tests.assert_eq(values, { "v1", "v2", "v3" })
     end
 

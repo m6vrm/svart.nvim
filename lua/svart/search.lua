@@ -2,7 +2,7 @@ local utils = require("svart.utils")
 local win = require("svart.win")
 
 local function search_regex(query)
-    return "\\V" .. vim.fn.escape(query, "\\") .. "\\_."
+    return "\\V" .. vim.fn.escape(query, "\\")
 end
 
 local function directional_search(query, backwards, bounds)
@@ -21,7 +21,7 @@ local function directional_search(query, backwards, bounds)
         local cursor_match_flag = first_search and not backwards and "c" or ""
         first_search = false
 
-        local regex = search_regex(query)
+        local regex = search_regex(query) .. "\\_."
         local match = vim.fn.searchpos(regex, search_flags .. cursor_match_flag, search_stopline)
         local line, col = unpack(match)
 
@@ -83,8 +83,8 @@ function M.search(query, win_ctx, win, buf)
     return matches
 end
 
-function M.make_context(config, win)
-    local matches = {}
+function M.make_context(config, win, excluded_win_ids)
+    local flat_matches = {}
     local current_idx = 0
     local current_match = nil
 
@@ -92,31 +92,33 @@ function M.make_context(config, win)
 
     local set_current_index = function(idx)
         current_idx = idx
-        current_match = matches[idx]
+        current_match = flat_matches[idx]
     end
 
     local this = {}
 
-    this.reset = function(new_matches)
-        matches = {}
+    this.reset = function(matches)
+        flat_matches = {}
 
         -- collect matches from all windows
-        for _, win_matches in ipairs(new_matches.wins) do
-            local matches_copy = { unpack(win_matches.list) }
+        for _, win_matches in ipairs(matches.wins) do
+            if excluded_win_ids[win_matches.win_id] == nil then
+                local matches_copy = { unpack(win_matches.list) }
 
-            -- sort matches by line number for easier navigation
-            table.sort(matches_copy, function(match1, match2)
-                if match1.line ~= match2.line then return match1.line < match2.line end
-                return match1.col < match2.col
-            end)
+                -- sort matches by line number for easier navigation
+                table.sort(matches_copy, function(match1, match2)
+                    if match1.line ~= match2.line then return match1.line < match2.line end
+                    return match1.col < match2.col
+                end)
 
-            for _, match in ipairs(matches_copy) do
-                table.insert(matches, match)
+                for _, match in ipairs(matches_copy) do
+                    table.insert(flat_matches, match)
+                end
             end
         end
 
         -- don't change current match if it's equal to the previous one
-        for i, match in ipairs(matches) do
+        for i, match in ipairs(flat_matches) do
             if current_match ~= nil
                 and match.win_id == current_match.win_id
                 and match.line == current_match.line
@@ -129,7 +131,7 @@ function M.make_context(config, win)
         -- or set current match to the first match after the cursror
         local last_idx = 0
 
-        for i, match in ipairs(matches) do
+        for i, match in ipairs(flat_matches) do
             if (match.line == cursor.line and match.col >= cursor.col)
                 or match.line > cursor.line then
                 set_current_index(i)
@@ -144,22 +146,22 @@ function M.make_context(config, win)
     end
 
     this.is_empty = function()
-        return next(matches) == nil
+        return next(flat_matches) == nil
     end
 
     this.best_match = function()
-        return matches[current_idx]
+        return flat_matches[current_idx]
     end
 
     this.next_match = function()
         if current_idx == 0 then return end
-        local last_idx = config.search_wrap_around and 1 or #matches
-        set_current_index(current_idx >= #matches and last_idx or current_idx + 1)
+        local last_idx = config.search_wrap_around and 1 or #flat_matches
+        set_current_index(current_idx >= #flat_matches and last_idx or current_idx + 1)
     end
 
     this.prev_match = function()
         if current_idx == 0 then return end
-        local last_idx = config.search_wrap_around and #matches or 1
+        local last_idx = config.search_wrap_around and #flat_matches or 1
         set_current_index(current_idx <= 1 and last_idx or current_idx - 1)
     end
 
@@ -172,7 +174,7 @@ function M.test()
     -- search_regex
     do
         local regex = search_regex([[ \ test \ ]])
-        tests.assert_eq(regex, [[\V \\ test \\ \_.]])
+        tests.assert_eq(regex, [[\V \\ test \\ ]])
     end
 
     -- make_context

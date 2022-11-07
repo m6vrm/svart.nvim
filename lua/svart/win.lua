@@ -93,7 +93,8 @@ function M.run_on(win_id, win_handler)
     return result
 end
 
-function M.current_buf_win_ids()
+-- windows with buffer other than current
+function M.other_buf_win_ids()
     local win_ids = {}
     local focusable_win_ids = focusable_win_ids()
     local current_buf_id = vim.api.nvim_get_current_buf()
@@ -101,7 +102,7 @@ function M.current_buf_win_ids()
     for _, win_id in ipairs(focusable_win_ids) do
         local buf_id = vim.fn.winbufnr(win_id)
 
-        if buf_id == current_buf_id then
+        if buf_id ~= current_buf_id then
             table.insert(win_ids, win_id)
         end
     end

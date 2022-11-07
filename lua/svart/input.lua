@@ -13,7 +13,6 @@ local function is_printable(char)
 end
 
 local function is_label(possible_label, labels)
-    -- todo: use some kind of set/map for faster search
     for _, label in ipairs(labels) do
         if utils.string_prefix(label, possible_label) then
             return true
