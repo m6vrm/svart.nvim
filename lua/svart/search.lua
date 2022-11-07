@@ -46,19 +46,38 @@ local function regular_search(query)
     saved_view_state.restore()
 end
 
-local function search(query)
-    local bounds = buf.visible_bounds()
-    local matches = {}
+local function search(win_ctx, query)
+    local matches = {
+        count = 0,
+        wins = {},
+    }
 
-    -- search forward
-    for match in directional_search(query, false, bounds) do
-        table.insert(matches, match)
-    end
+    win_ctx.for_each(function(win_id, current_win_id)
+        local bounds = buf.visible_bounds()
+        local cursor = win.cursor()
 
-    -- then search backwards
-    for match in directional_search(query, true, bounds) do
-        table.insert(matches, match)
-    end
+        local win_matches = {
+            win_id = win_id,
+            bounds = bounds,
+            cursor = cursor,
+            list = {},
+        }
+
+        -- search forward
+        for match in directional_search(query, false, bounds) do
+            local line, col = unpack(match)
+            table.insert(win_matches.list, { win_id = win_id, line = line, col = col })
+        end
+
+        -- then search backwards
+        for match in directional_search(query, true, bounds) do
+            local line, col = unpack(match)
+            table.insert(win_matches.list, { win_id = win_id, line = line, col = col })
+        end
+
+        matches.count = matches.count + #win_matches.list
+        table.insert(matches.wins, win_matches)
+    end)
 
     return matches
 end
@@ -75,36 +94,49 @@ local function make_context(cursor, wrap_around)
 
     return {
         reset = function(new_matches)
-            matches = { unpack(new_matches) }
+            matches = {}
 
-            -- sort matches by line number for easier navigation
-            table.sort(matches, function(match1, match2)
-                if match1[1] ~= match2[1] then return match1[1] < match2[1] end
-                return match1[2] < match2[2]
-            end)
+            -- collect matches from all windows
+            for _, win_matches in ipairs(new_matches.wins) do
+                local matches_copy = { unpack(win_matches.list) }
+
+                -- sort matches by line number for easier navigation
+                table.sort(matches_copy, function(match1, match2)
+                    if match1.line ~= match2.line then return match1.line < match2.line end
+                    return match1.col < match2.col
+                end)
+
+                for _, match in ipairs(matches_copy) do
+                    table.insert(matches, match)
+                end
+            end
 
             -- don't change current match if it's equal to the previous one
             for i, match in ipairs(matches) do
                 if current_match ~= nil
-                    and match[1] == current_match[1]
-                    and match[2] == current_match[2] then
+                    and match.win_id == current_match.win_id
+                    and match.line == current_match.line
+                    and match.col == current_match.col then
                     set_current_index(i)
                     return
                 end
             end
 
-            -- or set current match as the first match after the cursror
-            -- todo: use nearest match to the cursor?
+            -- or set current match to the first match after the cursror
+            local last_idx = 0
+
             for i, match in ipairs(matches) do
-                if (match[1] == cursor[1] and match[2] >= cursor[2])
-                    or match[1] > cursor[1] then
+                if (match.line == cursor.line and match.col >= cursor.col)
+                    or match.line > cursor.line then
                     set_current_index(i)
                     return
                 end
+
+                last_idx = i
             end
 
-            -- or set current match to the first one
-            set_current_index(next(matches) == nil and 0 or 1)
+            -- or set current match to the nearest to the cursor
+            set_current_index(last_idx)
         end,
         is_empty = function()
             return next(matches) == nil
@@ -113,13 +145,11 @@ local function make_context(cursor, wrap_around)
             return matches[current_idx]
         end,
         next_match = function()
-            -- next match with wraparound
             if current_idx == 0 then return end
             local last_idx = wrap_around and 1 or #matches
             set_current_index(current_idx >= #matches and last_idx or current_idx + 1)
         end,
         prev_match = function()
-            -- previous match with wraparound
             if current_idx == 0 then return end
             local last_idx = wrap_around and #matches or 1
             set_current_index(current_idx <= 1 and last_idx or current_idx - 1)

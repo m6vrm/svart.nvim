@@ -10,9 +10,8 @@ local function line_at(line_nr)
 end
 
 local function char_at(pos)
-    local line_nr, col = unpack(pos)
-    local line = line_at(line_nr)
-    return line:sub(col, col)
+    local line = line_at(pos.line)
+    return line:sub(pos.col, pos.col)
 end
 
 return {

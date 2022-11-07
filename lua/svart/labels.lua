@@ -1,6 +1,7 @@
 local config = require("svart.config")
 local utils = require("svart.utils")
 local buf = require("svart.buf")
+local win = require("svart.win")
 
 local function make_labels_pool(atoms, min_count, max_len)
     local generated = false
@@ -92,21 +93,20 @@ local function sort_matches(matches, bounds)
     local middle_line = math.floor(bounds.top + (bounds.bottom - bounds.top) / 2)
 
     table.sort(matches, function(match1, match2)
-        local dist1 = math.abs(match1[1] - middle_line)
-        local dist2 = math.abs(match2[1] - middle_line)
+        local dist1 = math.abs(match1.line - middle_line)
+        local dist2 = math.abs(match2.line - middle_line)
 
         if dist1 ~= dist2 then return dist1 < dist2 end
-        if match1[1] ~= match2[1] then return match1[1] < match2[1] end
-        return match1[2] < match2[2]
+        if match1.line ~= match2.line then return match1.line < match2.line end
+        return match1.col < match2.col
     end)
 end
 
 local function discard_conflicting_labels(labels_pool, matches, query, buf)
     -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
-        local line_nr, col = unpack(match)
-        local line = buf.line_at(line_nr)
-        local next_char = line:sub(col + #query, col + #query):lower()
+        local line = buf.line_at(match.line)
+        local next_char = line:sub(match.col + #query, match.col + #query):lower()
 
         if next_char ~= "" then
             labels_pool.discard(next_char)
@@ -114,8 +114,9 @@ local function discard_conflicting_labels(labels_pool, matches, query, buf)
     end
 end
 
-local function label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
-    -- first try to take lables from previous search
+-- todo: write tests
+local function label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+    -- try to take lables from previous search
     for _, match in ipairs(matches) do
         local label = prev_labeled_matches.key(match)
 
@@ -124,8 +125,11 @@ local function label_matches(matches, labels_pool, prev_labeled_matches, labeled
             labeled_matches.set(label, match)
         end
     end
+end
 
-    -- then take labels from the pool
+-- todo: write tests
+local function label_matches(matches, labels_pool, labeled_matches)
+    -- take labels from the pool
     for _, match in ipairs(matches) do
         local label = labels_pool.first()
 
@@ -156,7 +160,7 @@ end
 local function discard_offscreen_labels(labeled_matches, bounds)
     -- discard labels out of current screen bounds
     for label, match in labeled_matches.pairs() do
-        if match[1] < bounds.top or match[1] > bounds.bottom then
+        if match.line < bounds.top or match.line > bounds.bottom then
             labeled_matches.remove_value(match)
         end
     end
@@ -179,25 +183,34 @@ local function make_context()
                 return
             end
 
-            local bounds = buf.visible_bounds()
-
             labeled_matches = history[query] ~= nil
                 and history[query].copy()
                 or utils.make_bimap()
 
-            discard_offscreen_labels(labeled_matches, bounds)
-
-            local matches = { unpack(matches) }
-            local labels_pool = make_labels_pool(atoms, #matches, config.label_max_len)
-
+            -- labels from previous search
             local prev_query = query:sub(1, -2)
             local prev_labeled_matches = history[prev_query] ~= nil
-              and history[prev_query].copy()
-               or utils.make_bimap()
+                and history[prev_query].copy()
+                or utils.make_bimap()
 
-            sort_matches(matches, bounds)
-            discard_conflicting_labels(labels_pool, matches, query, buf)
-            label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+            local labels_pool = make_labels_pool(atoms, matches.count, config.label_max_len)
+
+            for _, win_matches in ipairs(matches.wins) do
+                win.run_on(win_matches.win_id, function()
+                    discard_offscreen_labels(labeled_matches, win_matches.bounds)
+                    discard_conflicting_labels(labels_pool, win_matches.list, query, buf)
+                    label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+                end)
+            end
+
+            for _, win_matches in ipairs(matches.wins) do
+                win.run_on(win_matches.win_id, function()
+                    -- todo: support different sort strategies
+                    -- todo: allow to spread short labels between windows
+                    sort_matches(win_matches.list, win_matches.bounds)
+                    label_matches(win_matches.list, labels_pool, labeled_matches)
+                end)
+            end
 
             history[query] = labeled_matches.copy()
 

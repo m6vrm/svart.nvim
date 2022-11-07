@@ -32,11 +32,12 @@ end
 local function start(query, labels_ctx)
     local query = query or ""
 
+    local win_ctx = win.make_context()
     local search_ctx = search.make_context(win.cursor(), config.search_wrap_around)
     local labels_ctx = labels_ctx or labels.make_context()
 
     local prompt = ui.prompt()
-    local dim = ui.dim()
+    local dim = ui.dim(win_ctx)
     local highlight = ui.highlight()
 
     dim.content()
@@ -83,7 +84,7 @@ local function start(query, labels_ctx)
                 return false
             end
 
-            local matches = search.search(query)
+            local matches = search.search(win_ctx, query)
 
             search_ctx.reset(matches)
             labels_ctx.label_matches(matches, query, label)
