@@ -15,7 +15,11 @@ end
 local commands = {
     { "Svart", function() require("svart").search() end },
     { "SvartRepeat", function() require("svart").do_repeat() end },
-    { "SvartTest", function() require("svart.tests").run() end },
+    { "SvartTest", function()
+        local module = "svart.tests"
+        package.loaded[module] = nil
+        require(module).run()
+    end },
 }
 
 for _, command in ipairs(commands) do

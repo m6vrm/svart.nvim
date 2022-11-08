@@ -133,4 +133,26 @@ function M.jump_to(pos)
     end)
 end
 
+function M.test()
+    local tests = require("svart.tests")
+
+    -- direction
+    do
+        local dir = direction({ line = 1, col = 1 }, { line = 1, col = 2 })
+        tests.assert_eq(dir, 1)
+
+        dir = direction({ line = 1, col = 2 }, { line = 1, col = 1 })
+        tests.assert_eq(dir, -1)
+
+        dir = direction({ line = 2, col = 1 }, { line = 1, col = 1 })
+        tests.assert_eq(dir, -1)
+
+        dir = direction({ line = 1, col = 1 }, { line = 2, col = 1 })
+        tests.assert_eq(dir, 1)
+
+        dir = direction({ line = 1, col = 1 }, { line = 1, col = 1 })
+        tests.assert_eq(dir, 0)
+    end
+end
+
 return M
