@@ -32,7 +32,8 @@ local function make_labels_pool(atoms, min_count, max_len)
                     end
                 end
             else
-                -- then concatenate atoms one to another to create more labels
+                -- then concatenate atoms one to another
+                -- to create more labels if needed
                 for _, label in labels.pairs() do
                     for _, atom in ipairs(atoms) do
                         if atom ~= label:sub(-#atom) then -- skip atom if it's equal
@@ -91,7 +92,7 @@ local function make_labels_pool(atoms, min_count, max_len)
 end
 
 local function sort_matches(matches, sorted_matches)
-    -- sort matches by distance to the middle line
+    -- sort matches by distance to the bounds middle line
     local win_bounds = {}
 
     for _, win_matches in ipairs(matches.wins) do
@@ -120,8 +121,8 @@ end
 local function discard_conflicting_labels(labels_pool, matches, query, buf)
     -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
-        local line = buf.line_at(match.line)
-        local next_char = line:sub(match.col + #query, match.col + #query):lower()
+        local char_pos = { line = match.line, col = match.col + #query }
+        local next_char = buf.char_at(char_pos):lower()
 
         if next_char ~= "" then
             labels_pool.discard(next_char)

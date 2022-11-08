@@ -13,7 +13,7 @@ for key, value in pairs(highlights) do
 end
 
 local commands = {
-    { "Svart", function() require("svart").start() end },
+    { "Svart", function() require("svart").search() end },
     { "SvartRepeat", function() require("svart").do_repeat() end },
     { "SvartTest", function() require("svart.tests").run() end },
 }

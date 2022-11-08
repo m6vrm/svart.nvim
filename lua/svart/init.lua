@@ -25,6 +25,8 @@ local function accept_match(match, query, labels_ctx)
 end
 
 local function excluded_win_ids()
+    -- in OP- and V-mode
+    -- exclude windows with other than current buffer
     if win.is_op_mode() or win.is_visual_mode() then
         local win_ids = win.other_buf_win_ids()
         return utils.table_flip(win_ids)
@@ -41,7 +43,7 @@ function M.setup(overrides)
     end
 end
 
-function M.start(query, labels_ctx)
+function M.search(query, labels_ctx)
     local query = query or ""
     local excluded_win_ids = excluded_win_ids()
 
@@ -59,7 +61,7 @@ function M.start(query, labels_ctx)
         query,
         -- get labels
         function() return labels_ctx.labels() end,
-        -- get char (return nil = break)
+        -- get char (return nil = break loop)
         function(query, label)
             prompt.show(query, label, search_ctx.is_empty())
             ui.redraw()
@@ -88,7 +90,7 @@ function M.start(query, labels_ctx)
 
             return char
         end,
-        -- input handler (return false = break)
+        -- input handler (return false = break loop)
         function(query, label)
             -- jump to the label
             if labels_ctx.has_label(label) then
@@ -115,7 +117,7 @@ function M.start(query, labels_ctx)
 end
 
 function M.do_repeat()
-    M.start(prev_query, prev_labels_ctx)
+    M.search(prev_query, prev_labels_ctx)
 end
 
 return M

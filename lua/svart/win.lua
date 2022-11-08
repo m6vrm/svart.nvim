@@ -42,7 +42,7 @@ local M = {}
 
 function M.is_op_mode()
     local mode = vim.api.nvim_get_mode().mode
-    return mode:match("o")
+    return mode:lower():match("o")
 end
 
 function M.is_visual_mode()
@@ -128,7 +128,7 @@ function M.jump_to(pos)
     M.run_on(pos.win_id, function()
         -- todo: OP-mode on EOF doesn't work properly
         if M.is_op_mode() and direction ~= -1 then
-            push_cursor()
+            push_cursor(false)
         end
     end)
 end
