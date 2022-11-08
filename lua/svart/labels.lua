@@ -90,17 +90,30 @@ local function make_labels_pool(atoms, min_count, max_len)
     return this
 end
 
-local function sort_matches(matches, bounds)
-    -- sort labels by distance to the middle line
-    local middle_line = math.floor(bounds.top + (bounds.bottom - bounds.top) / 2)
+local function sort_matches(matches, sorted_matches)
+    -- sort matches by distance to the middle line
+    local win_bounds = {}
 
-    table.sort(matches, function(match1, match2)
-        local dist1 = math.abs(match1.line - middle_line)
-        local dist2 = math.abs(match2.line - middle_line)
+    for _, win_matches in ipairs(matches.wins) do
+        win_bounds[win_matches.win_id] = win_matches.bounds
+
+        for _, match in ipairs(win_matches.list) do
+            table.insert(sorted_matches, match)
+        end
+    end
+
+    table.sort(sorted_matches, function(match1, match2)
+        local bounds1 = win_bounds[match1.win_id]
+        local bounds2 = win_bounds[match2.win_id]
+        local middle_line1 = math.floor(bounds1.top + (bounds1.bottom - bounds1.top) / 2)
+        local middle_line2 = math.floor(bounds2.top + (bounds2.bottom - bounds2.top) / 2)
+        local dist1 = math.abs(match1.line - middle_line1)
+        local dist2 = math.abs(match2.line - middle_line2)
 
         if dist1 ~= dist2 then return dist1 < dist2 end
         if match1.line ~= match2.line then return match1.line < match2.line end
-        return match1.col < match2.col
+        if match1.col ~= match2.col then return match1.col < match2.col end
+        return match1.win_id < match2.win_id
     end)
 end
 
@@ -192,24 +205,25 @@ function M.make_context(config, buf, win, excluded_win_ids)
 
     this.label_matches = function(matches, query, label)
         -- query too short to label matches, break
-        if #query < config.label_min_query_len then
+        if query == "" or #query < config.label_min_query_len then
             history = {}
             labeled_matches = utils.make_bimap()
             return
         end
 
         labeled_matches = history[query] ~= nil
-        and history[query].copy()
-        or utils.make_bimap()
+            and history[query].copy()
+            or utils.make_bimap()
 
         -- labels from previous search
         local prev_query = query:sub(1, -2)
         local prev_labeled_matches = history[prev_query] ~= nil
-        and history[prev_query].copy()
-        or utils.make_bimap()
+            and history[prev_query].copy()
+            or utils.make_bimap()
 
         local labels_pool = make_labels_pool(atoms, matches.count, config.label_max_len)
 
+        -- discard invalid labels
         for _, win_matches in ipairs(matches.wins) do
             win.run_on(win_matches.win_id, function()
                 discard_offscreen_labels(labeled_matches, win_matches.bounds)
@@ -218,16 +232,14 @@ function M.make_context(config, buf, win, excluded_win_ids)
             end)
         end
 
-        for _, win_matches in ipairs(matches.wins) do
-            win.run_on(win_matches.win_id, function()
-                -- todo: make labels independent from current window
-                sort_matches(win_matches.list, win_matches.bounds)
-                label_matches(win_matches.list, labels_pool, labeled_matches)
-            end)
-        end
+        -- sort and label matches
+        local sorted_matches = {}
+        sort_matches(matches, sorted_matches)
+        label_matches(sorted_matches, labels_pool, labeled_matches)
 
         history[query] = labeled_matches.copy()
 
+        -- postprocess filters
         discard_offwindow_labels(labeled_matches, excluded_win_ids)
 
         if config.label_hide_irrelevant and label ~= "" then
