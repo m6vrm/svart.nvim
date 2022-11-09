@@ -24,7 +24,7 @@ function M.prompt()
     local this = {}
 
     this.show = function(query, label, error)
-        local hl_group = error and "SvartErrorPrompt" or "SvartRegularPrompt"
+        local hl_group = error and "SvartErrorPrompt" or "SvartPrompt"
         local gap = label == "" and "" or " "
         vim.api.nvim_echo({ { "> " }, { query, hl_group }, { gap .. label } }, false, {})
     end
