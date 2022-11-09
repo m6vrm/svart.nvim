@@ -130,7 +130,6 @@ local function discard_conflicting_labels(labels_pool, matches, query, buf)
     end
 end
 
--- todo: write tests
 local function label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
     -- try to take lables from previous search
     for _, match in ipairs(matches) do
@@ -143,7 +142,6 @@ local function label_prev_matches(matches, labels_pool, prev_labeled_matches, la
     end
 end
 
--- todo: write tests
 local function label_matches(matches, labels_pool, labeled_matches)
     -- take labels from the pool
     for _, match in ipairs(matches) do
@@ -172,7 +170,6 @@ local function discard_irrelevant_labels(labeled_matches, current_label)
     end
 end
 
--- todo: write tests
 local function discard_offwindow_labels(labeled_matches, excluded_win_ids)
     -- discard labels from excluded windows
     for _, match in labeled_matches.pairs() do
@@ -182,7 +179,6 @@ local function discard_offwindow_labels(labeled_matches, excluded_win_ids)
     end
 end
 
--- todo: write tests
 local function discard_offscreen_labels(labeled_matches, bounds)
     -- discard labels out of the current visible bounds
     for _, match in labeled_matches.pairs() do
@@ -326,43 +322,131 @@ function M.test()
 
     -- sort_matches
     do
-        local bounds = { top = 1, bottom = 9 }
-        local matches = { { 2, 1 }, { 5, 1 }, { 7, 1 } }
-        sort_matches(matches, bounds)
-        tests.assert_eq(matches[1][1], 5)
-        tests.assert_eq(matches[2][1], 7)
-        tests.assert_eq(matches[3][1], 2)
+        local sorted_matches = {}
+        local matches = { wins = {
+            {
+                win_id = 1,
+                bounds = { top = 1, bottom = 9 },
+                list = {
+                    { win_id = 1, line = 2, col = 1 },
+                    { win_id = 1, line = 5, col = 1 },
+                    { win_id = 1, line = 7, col = 1 },
+                },
+            },
+            {
+                win_id = 2,
+                bounds = { top = 1, bottom = 3 },
+                list = {
+                    { win_id = 2, line = 2, col = 1 },
+                    { win_id = 2, line = 1, col = 1 },
+                },
+            },
+        } }
+        sort_matches(matches, sorted_matches)
+        tests.assert_eq(sorted_matches[1], { win_id = 2, line = 2, col = 1 })
+        tests.assert_eq(sorted_matches[2], { win_id = 1, line = 5, col = 1 })
+        tests.assert_eq(sorted_matches[3], { win_id = 2, line = 1, col = 1 })
+        tests.assert_eq(sorted_matches[4], { win_id = 1, line = 7, col = 1 })
+        tests.assert_eq(sorted_matches[5], { win_id = 1, line = 2, col = 1 })
 
-        bounds = { top = 1, bottom = 1 }
-        matches = { { 1, 1 }, { 1, 2 } }
-        sort_matches(matches, bounds)
-        tests.assert_eq(matches[1][2], 1)
-        tests.assert_eq(matches[2][2], 2)
+        sorted_matches = {}
+        matches = { wins = {
+            {
+                win_id = 1,
+                bounds = { top = 1, bottom = 1 },
+                list = {
+                    { win_id = 1, line = 1, col = 1 },
+                    { win_id = 1, line = 2, col = 1 },
+                },
+            },
+        } }
+        sort_matches(matches, sorted_matches)
+        tests.assert_eq(sorted_matches[1], { win_id = 1, line = 1, col = 1 })
+        tests.assert_eq(sorted_matches[2], { win_id = 1, line = 2, col = 1 })
     end
 
     -- discard_conflicting_labels
     do
         local labels_pool = make_labels_pool({}, 1, 1)
-        local matches = { { 1, 1 }, { 1, 6 } }
+        local matches = { { line = 1, col = 1 }, { line = 1, col = 6 } }
         local query = "_"
-        local buf = { line_at = function(line_nr) return "test line" end }
+        local buf = { char_at = function(pos) return ("test line"):sub(pos.col, pos.col) end }
         discard_conflicting_labels(labels_pool, matches, query, buf)
         assert(not labels_pool.available("e"))
         assert(not labels_pool.available("in"))
     end
 
+    -- label_prev_matches
+    do
+        local matches = {
+            { line = 2, col = 1 },
+            { line = 5, col = 1 },
+            { line = 7, col = 1 },
+            { line = 8, col = 1 },
+            { line = 9, col = 1 },
+        }
+
+        local labels_pool = make_labels_pool({ "a", "b", "c", "d", "e", "f" }, #matches, 2)
+        local prev_labeled_matches = utils.make_bimap({
+            x = { line = 2, col = 1 },
+            c = { line = 9, col = 1 },
+            zz = { line = 7, col = 1 },
+        })
+        local labeled_matches = utils.make_bimap()
+        label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+        tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
+        tests.assert_eq(labeled_matches.value("c"), { line = 9, col = 1 })
+        tests.assert_eq(labeled_matches.value("zz"), { line = 7, col = 1 })
+    end
+
     -- label_matches
     do
-        local matches = { { 2, 1 }, { 5, 1 }, { 7, 1 }, { 8, 1 }, { 9, 1 } }
+        local matches = {
+            { line = 2, col = 1 },
+            { line = 5, col = 1 },
+            { line = 7, col = 1 },
+            { line = 8, col = 1 },
+            { line = 9, col = 1 },
+        }
+
         local labels_pool = make_labels_pool({ "a", "b", "c", "d", "e", "f" }, #matches, 2)
-        local prev_labeled_matches = utils.make_bimap({ x = { 2, 1 }, c = { 9, 1 }, zz = { 7, 1 } })
-        local labeled_matches = utils.make_bimap()
-        label_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
-        tests.assert_eq(labeled_matches.key({ 5, 1 }), "b")
-        tests.assert_eq(labeled_matches.key({ 9, 1 }), "c")
-        tests.assert_eq(labeled_matches.key({ 7, 1 }), "d")
-        tests.assert_eq(labeled_matches.key({ 8, 1 }), "e")
-        tests.assert_eq(labeled_matches.key({ 2, 1 }), "x")
+        local labeled_matches = utils.make_bimap({
+            x = { line = 2, col = 1 },
+            c = { line = 9, col = 1 },
+            zz = { line = 7, col = 1 },
+        })
+        label_matches(matches, labels_pool, labeled_matches)
+        tests.assert_eq(labeled_matches.value("b"), { line = 5, col = 1 })
+        tests.assert_eq(labeled_matches.value("c"), { line = 7, col = 1 })
+        tests.assert_eq(labeled_matches.value("d"), { line = 8, col = 1 })
+        tests.assert_eq(labeled_matches.value("e"), { line = 9, col = 1 })
+        tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
+    end
+
+    -- discard_offwindow_labels
+    do
+        local labeled_matches = utils.make_bimap({
+            x = { win_id = 1, line = 2, col = 1 },
+            c = { win_id = 1, line = 9, col = 1 },
+            zz = { win_id = 2, line = 7, col = 1 },
+        })
+        discard_offwindow_labels(labeled_matches, { [2] = true })
+        tests.assert_eq(labeled_matches.value("zz"), nil)
+        tests.assert_eq(labeled_matches.value("x"), { win_id = 1, line = 2, col = 1 })
+        tests.assert_eq(labeled_matches.value("c"), { win_id = 1, line = 9, col = 1 })
+    end
+
+    -- discard_offscreen_labels
+    do
+        local labeled_matches = utils.make_bimap({
+            x = { line = 2, col = 1 },
+            c = { line = 9, col = 1 },
+            zz = { line = 7, col = 1 },
+        })
+        discard_offscreen_labels(labeled_matches, { top = 1, bottom = 7 })
+        tests.assert_eq(labeled_matches.value("c"), nil)
+        tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
+        tests.assert_eq(labeled_matches.value("zz"), { line = 7, col = 1 })
     end
 
     -- discard_irrelevant_labels
