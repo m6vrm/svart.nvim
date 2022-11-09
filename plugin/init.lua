@@ -13,16 +13,15 @@ for key, value in pairs(highlights) do
 end
 
 local commands = {
-    { "Svart", function() require("svart").search() end },
-    { "SvartRepeat", function() require("svart").do_repeat() end },
-    { "SvartTest", function()
+    Svart = function() require("svart").search() end,
+    SvartRepeat = function() require("svart").do_repeat() end,
+    SvartTest = function()
         local module = "svart.tests"
         package.loaded[module] = nil
         require(module).run()
-    end },
+    end,
 }
 
-for _, command in ipairs(commands) do
-    local name, action = unpack(command)
-    vim.api.nvim_create_user_command(name, action, {})
+for command, action in pairs(commands) do
+    vim.api.nvim_create_user_command(command, action, {})
 end
