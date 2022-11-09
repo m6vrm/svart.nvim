@@ -148,7 +148,7 @@ local function label_matches(matches, labels_pool, labeled_matches)
         local label = labels_pool.first()
 
         if label ~= nil then
-            assert(labels_pool.take() == label)
+            labels_pool.take()
             local prev_label = labeled_matches.key(match)
 
             if prev_label == nil then
@@ -318,6 +318,11 @@ function M.test()
         tests.assert_eq(labels_pool.take(), "ca")
         tests.assert_eq(labels_pool.take(), "cb")
         tests.assert_eq(labels_pool.take(), nil)
+
+        -- take first
+        labels_pool = make_labels_pool(atoms, 3, 2)
+        local first_label = labels_pool.first()
+        tests.assert_eq(labels_pool.take(), first_label)
     end
 
     -- sort_matches
