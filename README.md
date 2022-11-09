@@ -8,19 +8,21 @@ Jump to any location with few keystrokes.
 - Multi-window navigation
 - [Smartcase](https://neovim.io/doc/user/options.html#'smartcase') support
 - "Steady" deterministic labels
+- Search by regular expression
 
 **Installation**
 
 Install plugin and add keymaps:
 
 ```lua
-vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")       -- begin search
-vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with last searched query
+vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")        -- begin exact search
+vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRegex<CR>")   -- begin regex search
+vim.keymap.set({ "n", "x", "o" }, "gs", "<Cmd>SvartRepeat<CR>") -- repeat with last searched query
 ```
 
 **Usage**
 
-- Initiate search with `s`
+- Initiate search with `s` or `S`
 - Start typing search query
 - Type highlighted label to jump to corresponding location at any time
 - Or press `C-N` or `C-P` to select location

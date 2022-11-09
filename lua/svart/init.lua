@@ -7,21 +7,27 @@ local ui = require("svart.ui")
 local utils = require("svart.utils")
 local win = require("svart.win")
 
-local prev_query = ""
-local prev_labels_ctx = nil
+local function make_params(exact, query, labels_ctx)
+    return {
+        exact = exact == nil or exact == true,
+        query = query or "",
+        labels_ctx = labels_ctx or nil,
+    }
+end
 
-local function accept_match(match, query, labels_ctx)
-    assert(query ~= nil)
-    assert(labels_ctx ~= nil)
+local prev_params = make_params()
 
+local function accept_match(match, params)
+    assert(params.exact ~= nil)
+    assert(params.query ~= nil)
+    assert(params.labels_ctx ~= nil)
+
+    prev_params = params
     win.jump_to(match)
 
     if config.search_update_register then
-        search.update_register(query)
+        search.update_register(params.exact, params.query)
     end
-
-    prev_query = query
-    prev_labels_ctx = labels_ctx
 end
 
 local function excluded_win_ids()
@@ -43,13 +49,16 @@ function M.configure(overrides)
     end
 end
 
-function M.search(query, labels_ctx)
-    local query = query or ""
+function M.search(params)
+    local params = params or make_params()
+    local exact = params.exact
+    local query = params.query
+
     local excluded_win_ids = excluded_win_ids()
 
     local win_ctx = win.make_context()
     local search_ctx = search.make_context(config, win, excluded_win_ids)
-    local labels_ctx = labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
+    local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
 
     local prompt = ui.prompt()
     local dim = ui.dim(win_ctx)
@@ -76,7 +85,8 @@ function M.search(query, labels_ctx)
                 -- accept current match and jump to it
                 if search_ctx.best_match() ~= nil then
                     local match = search_ctx.best_match()
-                    accept_match(match, query, labels_ctx)
+                    local params = make_params(exact, query, labels_ctx)
+                    accept_match(match, params)
                 end
 
                 return nil
@@ -97,18 +107,19 @@ function M.search(query, labels_ctx)
             -- jump to the label
             if labels_ctx.has_label(label) then
                 local match = labels_ctx.match(label)
-                accept_match(match, query, labels_ctx)
+                local params = make_params(exact, query, labels_ctx)
+                accept_match(match, params)
                 return false
             end
 
-            local matches = search.search(query, win_ctx, win, buf)
+            local matches = search.search(exact, query, win_ctx)
 
             search_ctx.reset(matches)
             labels_ctx.label_matches(matches, query, label)
 
-            highlight.matches(matches, query)
+            highlight.matches(matches)
             highlight.cursor(search_ctx.best_match())
-            highlight.labels(labels_ctx.labeled_matches(), query)
+            highlight.labels(labels_ctx.labeled_matches())
 
             return true
         end
@@ -118,8 +129,12 @@ function M.search(query, labels_ctx)
     prompt.clear()
 end
 
+function M.search_regex()
+    M.search(make_params(false))
+end
+
 function M.do_repeat()
-    M.search(prev_query, prev_labels_ctx)
+    M.search(prev_params)
 end
 
 return M

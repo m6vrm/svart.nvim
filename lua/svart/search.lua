@@ -1,11 +1,12 @@
 local utils = require("svart.utils")
 local win = require("svart.win")
+local buf = require("svart.buf")
 
-local function search_regex(query)
-    return "\\V" .. vim.fn.escape(query, "\\")
+local function search_regex(exact, query)
+    return exact and "\\V" .. vim.fn.escape(query, "\\") or query
 end
 
-local function directional_search(query, backwards, bounds)
+local function directional_search(exact, query, backwards, bounds)
     if query == "" then
         return function() return nil end
     end
@@ -21,33 +22,39 @@ local function directional_search(query, backwards, bounds)
         local cursor_match_flag = first_search and not backwards and "c" or ""
         first_search = false
 
-        local regex = search_regex(query) .. "\\_."
-        local match = vim.fn.searchpos(regex, search_flags .. cursor_match_flag, search_stopline)
-        local line, col = unpack(match)
+        local regex = search_regex(exact, query)
+        local ok, match = pcall(vim.fn.searchpos, regex, search_flags .. cursor_match_flag, search_stopline)
+        if not ok then return saved_view_state.restore() end
 
-        if line == 0 and col == 0 then
-            saved_view_state.restore()
-            return nil
+        local line_nr, col = unpack(match)
+        if line_nr == 0 and col == 0 then return saved_view_state.restore() end
+
+        local match_len = #query
+
+        if not exact then
+            local line = buf.line_at(line_nr):sub(col, -1)
+            local matched_str = vim.fn.matchstr(line, regex)
+            match_len = #matched_str
         end
 
-        return match
+        return { line = line_nr, col = col, len = match_len }
     end
 end
 
 local M = {}
 
-function M.update_register(query)
+function M.update_register(exact, query)
     if query == "" then return end
 
     local saved_view_state = win.save_view_state()
-    local regex = search_regex(query)
+    local regex = search_regex(exact, query)
 
     vim.cmd("/" .. regex)
 
     saved_view_state.restore()
 end
 
-function M.search(query, win_ctx, win, buf)
+function M.search(exact, query, win_ctx)
     local matches = {
         count = 0,
         wins = {},
@@ -65,15 +72,15 @@ function M.search(query, win_ctx, win, buf)
         }
 
         -- search forward
-        for match in directional_search(query, false, bounds) do
-            local line, col = unpack(match)
-            table.insert(win_matches.list, { win_id = win_id, line = line, col = col })
+        for match in directional_search(exact, query, false, bounds) do
+            match.win_id = win_id
+            table.insert(win_matches.list, match)
         end
 
         -- then search backwards
-        for match in directional_search(query, true, bounds) do
-            local line, col = unpack(match)
-            table.insert(win_matches.list, { win_id = win_id, line = line, col = col })
+        for match in directional_search(exact, query, true, bounds) do
+            match.win_id = win_id
+            table.insert(win_matches.list, match)
         end
 
         matches.count = matches.count + #win_matches.list
@@ -173,8 +180,15 @@ function M.test()
 
     -- search_regex
     do
-        local regex = search_regex([[ \ test \ ]])
-        tests.assert_eq(regex, [[\V \\ test \\ ]])
+        local query = [[ \n test \n ]]
+
+        -- exact
+        local regex = search_regex(true, query)
+        tests.assert_eq(regex, [[\V \\n test \\n ]])
+
+        -- regex
+        regex = search_regex(false, query)
+        tests.assert_eq(regex, query)
     end
 
     -- make_context

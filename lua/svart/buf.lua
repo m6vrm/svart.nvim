@@ -7,8 +7,12 @@ function M.visible_bounds()
     }
 end
 
+function M.line_at(line_nr)
+    return vim.fn.getline(line_nr)
+end
+
 function M.char_at(pos)
-    local line = vim.fn.getline(pos.line)
+    local line = M.line_at(pos.line)
     return line:sub(pos.col, pos.col)
 end
 

@@ -79,7 +79,7 @@ function M.highlight(config)
 
     local this = {}
 
-    this.matches = function(matches, query)
+    this.matches = function(matches)
         for _, win_matches in ipairs(matches.wins) do
             win_bounds[win_matches.win_id] = win_matches.bounds
 
@@ -90,15 +90,15 @@ function M.highlight(config)
                     "SvartMatch",
                     match.line - 1,
                     match.col - 1,
-                    match.col + #query - 1
+                    match.col + match.len - 1
                 )
             end
         end
     end
 
-    this.labels = function(labeled_matches, query)
+    this.labels = function(labeled_matches)
         for label, match in labeled_matches.pairs() do
-            local col = config.label_location == "start" and match.col - 1 or match.col - 1 + #query
+            local col = config.label_location == "start" and match.col - 1 or match.col - 1 + match.len
 
             vim.api.nvim_buf_set_extmark(
                 vim.fn.winbufnr(match.win_id),
