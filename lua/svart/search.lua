@@ -183,7 +183,7 @@ function M.test()
         local win = { cursor = function() return { line = 2, col = 1 } end }
 
         -- empty
-        local ctx = M.make_context(config, win, {})
+        local ctx = M.make_context(config, win, { [3] = true })
         assert(ctx.is_empty())
         tests.assert_eq(ctx.best_match(), nil)
 
@@ -196,6 +196,10 @@ function M.test()
             {
                 win_id = 2,
                 list = { { line = 4, col = 1 } },
+            },
+            {
+                win_id = 3,
+                list = { { line = 5, col = 1 } },
             },
         } })
         assert(not ctx.is_empty())
