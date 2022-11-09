@@ -9,7 +9,7 @@ local win = require("svart.win")
 
 local function make_params(exact, query, labels_ctx)
     return {
-        exact = exact == nil or exact == true,
+        exact = exact ~= false,
         query = query or "",
         labels_ctx = labels_ctx or nil,
     }

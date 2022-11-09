@@ -31,6 +31,7 @@ local function directional_search(exact, query, backwards, bounds)
 
         local match_len = #query
 
+        -- todo: write test
         if not exact then
             local line = buf.line_at(line_nr):sub(col, -1)
             local matched_str = vim.fn.matchstr(line, regex)

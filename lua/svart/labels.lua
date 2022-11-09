@@ -1,5 +1,15 @@
 local utils = require("svart.utils")
 
+-- todo: write test
+local function make_matches_bimap()
+    local match_to_string = function(match)
+        local static_match = { win_id = match.win_id, line = match.line, col = match.col }
+        return vim.inspect(static_match)
+    end
+
+    return utils.make_bimap(nil, nil, nil, match_to_string)
+end
+
 local function make_labels_pool(atoms, min_count, max_len)
     local generated = false
     local labels = utils.make_bimap()
@@ -192,7 +202,7 @@ local M = {}
 
 function M.make_context(config, buf, win, excluded_win_ids)
     local history = {}
-    local labeled_matches = utils.make_bimap()
+    local labeled_matches = make_matches_bimap()
 
     -- convert atoms string to array
     local atoms = {}
@@ -204,19 +214,19 @@ function M.make_context(config, buf, win, excluded_win_ids)
         -- query too short to label matches, break
         if query == "" or #query < config.label_min_query_len then
             history = {}
-            labeled_matches = utils.make_bimap()
+            labeled_matches = make_matches_bimap()
             return
         end
 
         labeled_matches = history[query] ~= nil
             and history[query].copy()
-            or utils.make_bimap()
+            or make_matches_bimap()
 
         -- labels from previous search
         local prev_query = query:sub(1, -2)
         local prev_labeled_matches = history[prev_query] ~= nil
             and history[prev_query].copy()
-            or utils.make_bimap()
+            or make_matches_bimap()
 
         local labels_pool = make_labels_pool(atoms, matches.count, config.label_max_len)
 

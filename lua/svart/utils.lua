@@ -36,8 +36,9 @@ function M.string_prefix(string, prefix)
 end
 
 -- bidirectional map (https://www.boost.org/doc/libs/1_79_0/libs/bimap/doc/html/index.html)
-function M.make_bimap(keys_to_values, values_to_keys, count)
-    local value_to_string = function(value) return vim.inspect(value) end
+-- todo: test value_to_string
+function M.make_bimap(keys_to_values, values_to_keys, count, value_to_string)
+    local value_to_string = value_to_string or function(value) return vim.inspect(value) end
 
     local index_values = function(keys_to_values)
         local values_to_keys = {}
@@ -66,7 +67,12 @@ function M.make_bimap(keys_to_values, values_to_keys, count)
     end
 
     this.copy = function()
-        return M.make_bimap(vim.deepcopy(keys_to_values), vim.deepcopy(values_to_keys), count)
+        return M.make_bimap(
+            vim.deepcopy(keys_to_values),
+            vim.deepcopy(values_to_keys),
+            count,
+            value_to_string
+        )
     end
 
     this.count = function()
