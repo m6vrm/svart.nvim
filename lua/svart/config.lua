@@ -2,6 +2,7 @@ return {
     key_cancel = "<Esc>",       -- cancel search
     key_delete_char = "<BS>",   -- delete query char
     key_delete_word = "<C-W>",  -- delete query word
+    key_delete_query = "<C-U>", -- delete whole query
     key_best_match = "<CR>",    -- jump to the best match
     key_next_match = "<C-N>",   -- select next match
     key_prev_match = "<C-P>",   -- select prev match

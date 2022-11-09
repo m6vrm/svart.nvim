@@ -28,6 +28,7 @@ M.keys = {
     cancel = replace_termcodes(config.key_cancel),
     delete_char = replace_termcodes(config.key_delete_char),
     delete_word = replace_termcodes(config.key_delete_word),
+    delete_query = replace_termcodes(config.key_delete_query),
     best_match = replace_termcodes(config.key_best_match),
     next_match = replace_termcodes(config.key_next_match),
     prev_match = replace_termcodes(config.key_prev_match),
@@ -65,6 +66,9 @@ function M.wait_for_input(query, get_labels, get_char, input_handler)
             else
                 query = vim.fn.substitute(query, delete_word_regex, "", "")
             end
+        elseif char == M.keys.delete_query then
+            query = ""
+            label = ""
         end
 
         if is_printable(char) then
