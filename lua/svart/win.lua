@@ -1,5 +1,4 @@
 -- 1 = forward, -1 = backward, 0 = none
--- todo: write tests
 local function direction(from, to)
     if to.line > from.line then
         return 1

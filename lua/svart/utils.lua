@@ -20,7 +20,6 @@ function M.table_values(table_)
     return values
 end
 
--- todo: write tests
 function M.table_flip(table_)
     local flipped = {}
 
@@ -189,6 +188,14 @@ function M.test()
 
         values = M.table_values({ "v1", "v2", "v3" })
         tests.assert_eq(values, { "v1", "v2", "v3" })
+    end
+
+    -- table_flip
+    do
+        local flipped = M.table_flip({ v1, v2, v3, v3 })
+        tests.assert_eq(flipped.v1)
+        tests.assert_eq(flipped.v2)
+        tests.assert_eq(flipped.v3)
     end
 
     -- string_prefix
