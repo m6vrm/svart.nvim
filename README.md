@@ -65,4 +65,4 @@ SvartErrorPrompt = { default = true, link = "ErrorMsg" },
 
 **Contributing**
 
-Run unit-tests with `:SvartTest` command.
+Don't forget to run unit-tests with `:SvartTest` command.

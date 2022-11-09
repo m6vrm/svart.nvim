@@ -57,7 +57,7 @@ function M.wait_for_input(query, get_labels, get_char, input_handler)
                 query = query:sub(1, -2)
             end
         elseif char == M.keys.delete_word then
-            -- delete whole label or last char from query
+            -- delete whole label or last word from query
             local delete_word_regex = [=[\v[[:keyword:]]\zs[^[:keyword:]]+$|[[:keyword:]]+$]=]
 
             if label ~= "" then

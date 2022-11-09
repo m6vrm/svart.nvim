@@ -6,7 +6,7 @@ local function make_labels_pool(atoms, min_count, max_len)
     local discarded = {}
 
     local available = function(label)
-        -- label isn't available if it's prefix
+        -- label isn't available if its prefix
         -- exists in the discarded labels list
         for discarded_label, _ in pairs(discarded) do
             if utils.string_prefix(label, discarded_label) then
