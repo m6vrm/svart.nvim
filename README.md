@@ -5,7 +5,7 @@ Jump to any location with few keystrokes.
 **Features**
 
 - Bidirectional search
-- Multi-window search
+- Multi-window navigation
 - [Smartcase](https://neovim.io/doc/user/options.html#'smartcase') support
 - "Steady" deterministic labels
 
