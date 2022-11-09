@@ -62,3 +62,7 @@ SvartLabel = { default = true, link = "CurSearch" },
 SvartRegularPrompt = { default = true, link = "MoreMsg" },
 SvartErrorPrompt = { default = true, link = "ErrorMsg" },
 ```
+
+**Contributing**
+
+Run unit-tests with `:SvartTest` command.
