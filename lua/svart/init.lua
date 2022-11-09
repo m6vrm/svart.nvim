@@ -37,7 +37,7 @@ end
 
 local M = {}
 
-function M.setup(overrides)
+function M.configure(overrides)
     for key, value in pairs(overrides) do
         config[key] = value
     end

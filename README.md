@@ -32,7 +32,7 @@ vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with la
 ```lua
 local svart = require("svart")
 
-svart.setup({
+svart.configure({
     key_cancel = "<Esc>",      -- cancel search
     key_delete_char = "<BS>",  -- delete query char
     key_delete_word = "<C-W>", -- delete query word
