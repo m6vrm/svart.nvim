@@ -55,7 +55,9 @@ function M.search(query, labels_ctx)
     local dim = ui.dim(win_ctx)
     local highlight = ui.highlight()
 
-    dim.content()
+    if config.ui_dim_content then
+        dim.content()
+    end
 
     input.wait_for_input(
         query,

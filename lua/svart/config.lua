@@ -12,7 +12,9 @@ return {
     label_min_query_len = 1,                    -- min query length needed to show labels
     label_hide_irrelevant = true,               -- hide irrelevant labels after start typing label to go to
 
-    search_update_register = true, -- update search (/) register after accepting match
+    search_update_register = true, -- update search (/) register with last used query after accepting match
     search_wrap_around = true,     -- wrap around when navigating to next/prev match
     search_multi_window = true,    -- search in multiple windows
+
+    ui_dim_content = true, -- dim buffer content during search
 }
