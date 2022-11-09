@@ -24,7 +24,7 @@ vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with la
 - Start typing search query
 - Type highlighted label to jump to corresponding location at any time
 - Or press `C-N` or `C-P` to select location
-- Press `Enter` to jump to the selected location and continue with regular (`/`) search
+    - Press `Enter` to jump to the selected location and continue with regular (`/`) search
 - Use `Backspace` and `C-W` to edit search query
 
 **Configuration**
