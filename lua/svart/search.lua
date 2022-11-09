@@ -128,7 +128,7 @@ function M.make_context(config, win, excluded_win_ids)
             end
         end
 
-        -- or set current match to the first match after the cursror
+        -- or set current match to the first match after the cursor
         local last_idx = 0
 
         for i, match in ipairs(flat_matches) do
