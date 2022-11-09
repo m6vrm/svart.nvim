@@ -15,17 +15,17 @@ Install plugin and add keymaps:
 
 ```lua
 vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")       -- begin search
-vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with last searched pattern
+vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with last searched query
 ```
 
 **Usage**
 
 - Initiate search with `s`
-- Start typing search pattern
+- Start typing search query
 - Type highlighted label to jump to corresponding location at any time
 - Or press `C-N` or `C-P` to select location
 - Press `Enter` to jump to the selected location and continue with regular (`/`) search
-- Use `Backspace` and `C-W` to edit search pattern
+- Use `Backspace` and `C-W` to edit search query
 
 **Configuration**
 
@@ -65,4 +65,5 @@ SvartErrorPrompt = { default = true, link = "ErrorMsg" },
 
 **Contributing**
 
-Don't forget to run unit-tests with `:SvartTest` command.
+1. Add new tests to the `lua/svart/tests.lua`
+2. Run tests with `:SvartTest` command
