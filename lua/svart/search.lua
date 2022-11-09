@@ -36,7 +36,7 @@ end
 
 local M = {}
 
-function M.regular_search(query)
+function M.update_register(query)
     if query == "" then return end
 
     local saved_view_state = win.save_view_state()

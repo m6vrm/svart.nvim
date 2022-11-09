@@ -16,8 +16,8 @@ local function accept_match(match, query, labels_ctx)
 
     win.jump_to(match)
 
-    if config.search_begin_regular then
-        search.regular_search(query)
+    if config.search_update_register then
+        search.update_register(query)
     end
 
     prev_query = query
