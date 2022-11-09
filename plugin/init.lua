@@ -3,7 +3,7 @@ local highlights = {
     SvartMatch = { default = true, link = "Search" },
     SvartMatchCursor = { default = true, link = "Cursor" },
     SvartDimmedCursor = { default = true, link = "TermCursorNC" },
-    SvartLabel = { default = true, link = "CurSearch" },
+    SvartLabel = { default = true, link = "IncSearch" },
     SvartRegularPrompt = { default = true, link = "MoreMsg" },
     SvartErrorPrompt = { default = true, link = "ErrorMsg" },
 }
