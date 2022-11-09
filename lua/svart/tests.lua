@@ -19,7 +19,7 @@ end
 function M.run()
     test("svart.utils")
 --    test("svart.labels")
---    test("svart.search")
+    test("svart.search")
     test("svart.win")
 end
 

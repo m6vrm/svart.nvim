@@ -179,51 +179,74 @@ function M.test()
 
     -- make_context
     do
+        local config = { search_wrap_around = true }
+        local win = { cursor = function() return { line = 2, col = 1 } end }
+
         -- empty
-        local ctx = make_context({ 2, 1 }, true)
+        local ctx = M.make_context(config, win, {})
         assert(ctx.is_empty())
         tests.assert_eq(ctx.best_match(), nil)
 
         -- filled
-        ctx.reset({ { 1, 1 }, { 3, 1 }, { 4, 1 } })
+        ctx.reset({ wins = {
+            {
+                win_id = 1,
+                list = { { line = 1, col = 1 }, { line = 3, col = 1 } },
+            },
+            {
+                win_id = 2,
+                list = { { line = 4, col = 1 } },
+            },
+        } })
         assert(not ctx.is_empty())
-        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
         -- next
         ctx.next_match()
-        tests.assert_eq(ctx.best_match(), { 4, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 4, col = 1 })
 
         -- wrap around
         ctx.next_match()
-        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
         ctx.prev_match()
-        tests.assert_eq(ctx.best_match(), { 4, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 4, col = 1 })
 
         -- prev
         ctx.prev_match()
-        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
         -- preseve best match
-        ctx.reset({ { 1, 1 }, { 3, 1 } })
-        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        ctx.reset({ wins = {
+            {
+                win_id = 1,
+                list = { { line = 1, col = 1 }, { line = 3, col = 1 } },
+            },
+        } })
+        tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
         -- clear best match
-        ctx.reset({ { 1, 1 } })
-        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        ctx.reset({ wins = { { win_id = 1, list = { { line = 1, col = 1 } } } } })
+        tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
 
         -- wrap around disabled
-        ctx = make_context({ 2, 1 }, false)
-        ctx.reset({ { 1, 1 }, { 3, 1 } })
+        config = { search_wrap_around = false }
+        ctx = M.make_context(config, win, {})
+        ctx.reset({ wins = {
+            {
+                win_id = 1,
+                list = { { line = 1, col = 1 }, { line = 3, col = 1 } },
+            },
+        } })
 
         ctx.next_match()
-        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
         ctx.next_match()
-        tests.assert_eq(ctx.best_match(), { 3, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
         ctx.prev_match()
-        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
         ctx.prev_match()
-        tests.assert_eq(ctx.best_match(), { 1, 1 })
+        tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
     end
 end
 
