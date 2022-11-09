@@ -48,6 +48,7 @@ svart.configure({
     label_max_len = 2,                          -- max label length
     label_min_query_len = 1,                    -- min query length required to show labels
     label_hide_irrelevant = true,               -- hide irrelevant labels after start typing label to go to
+    label_conflict_foresight = 2,               -- number of chars to look ahead for conflict resolution
 
     search_update_register = true, -- update search (/) register with last used query after accepting match
     search_wrap_around = true,     -- wrap around when navigating to next/prev match
