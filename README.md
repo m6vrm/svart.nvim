@@ -44,7 +44,7 @@ svart.configure({
     label_atoms = "jfkdlsahgnuvrbytmiceoxwpqz", -- allowed label chars
     label_location = "end",                     -- possible values: "start", "end"
     label_max_len = 2,                          -- max label length
-    label_min_query_len = 1,                    -- min query length needed to show labels
+    label_min_query_len = 1,                    -- min query length required to show labels
     label_hide_irrelevant = true,               -- hide irrelevant labels after start typing label to go to
 
     search_update_register = true, -- update search (/) register with last used query after accepting match
