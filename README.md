@@ -14,8 +14,8 @@ Jump to any location with few keystrokes.
 Install plugin and add keymaps:
 
 ```lua
-vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")
-vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>")
+vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")       -- begin search
+vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRepeat<CR>") -- repeat with last searched pattern
 ```
 
 **Usage**
