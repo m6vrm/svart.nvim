@@ -128,13 +128,17 @@ local function sort_matches(matches, sorted_matches)
     end)
 end
 
-local function discard_conflicting_labels(labels_pool, matches, buf)
+local function discard_conflicting_labels(foresight, labels_pool, matches, buf)
     -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
-        local char_pos = { line = match.line, col = match.col + match.len }
-        local next_char = buf.char_at(char_pos):lower()
+        local start = match.col + match.len
+        local stop = math.max(match.col + foresight, match.col + match.len)
 
-        if next_char ~= "" then
+        for col = start, stop do
+            local char_pos = { line = match.line, col = col }
+            local next_char = buf.char_at(char_pos):lower()
+            if next_char == "" then break end
+
             labels_pool.discard(next_char)
         end
     end
@@ -235,7 +239,7 @@ function M.make_context(config, buf, win, excluded_win_ids)
         for _, win_matches in ipairs(matches.wins) do
             win.run_on(win_matches.win_id, function()
                 discard_offscreen_labels(labeled_matches, win_matches.bounds)
-                discard_conflicting_labels(labels_pool, win_matches.list, buf)
+                discard_conflicting_labels(config.label_conflict_foresight, labels_pool, win_matches.list, buf)
             end)
         end
 
@@ -383,12 +387,32 @@ function M.test()
 
     -- discard_conflicting_labels
     do
+        local buf = { char_at = function(pos) return ("test line"):sub(pos.col, pos.col) end }
+
+        -- foresight = 1, len = 1
         local labels_pool = make_labels_pool({}, 1, 1)
         local matches = { { line = 1, col = 1, len = 1 }, { line = 1, col = 6, len = 1 } }
-        local buf = { char_at = function(pos) return ("test line"):sub(pos.col, pos.col) end }
-        discard_conflicting_labels(labels_pool, matches, buf)
+        discard_conflicting_labels(1, labels_pool, matches, buf)
         assert(not labels_pool.available("e"))
         assert(not labels_pool.available("in"))
+        assert(labels_pool.available("s"))
+        assert(labels_pool.available("n"))
+
+        -- foresight = 2, len = 1
+        labels_pool = make_labels_pool({}, 1, 1)
+        discard_conflicting_labels(2, labels_pool, matches, buf)
+        assert(not labels_pool.available("e"))
+        assert(not labels_pool.available("in"))
+        assert(not labels_pool.available("s"))
+        assert(not labels_pool.available("n"))
+
+        -- foresight = 2, len = 2
+        labels_pool = make_labels_pool({}, 1, 1)
+        matches = { { line = 1, col = 1, len = 2 } }
+        discard_conflicting_labels(2, labels_pool, matches, buf)
+        assert(not labels_pool.available("s"))
+        assert(labels_pool.available("e"))
+        assert(labels_pool.available("t"))
     end
 
     -- label_prev_matches
