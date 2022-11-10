@@ -8,7 +8,9 @@ return {
     key_prev_match = "<C-P>",   -- select prev match
 
     label_atoms = "jfkdlsahgnuvrbytmiceoxwpqz", -- allowed label chars
-    label_location = "end",                     -- possible values: "start" of the match, "end" of the match
+    label_location = -1,                        -- label location relative to the match
+                                                -- positive = relative to the beginning of the match
+                                                -- 0 or negative = relative to the end of the match
     label_max_len = 2,                          -- max label length
     label_min_query_len = 1,                    -- min query length required to show labels
     label_hide_irrelevant = true,               -- hide irrelevant labels after start typing label to go to

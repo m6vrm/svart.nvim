@@ -98,7 +98,9 @@ function M.highlight(config)
 
     this.labels = function(labeled_matches)
         for label, match in labeled_matches.pairs() do
-            local col = config.label_location == "start" and match.col - 1 or match.col - 1 + match.len
+            local col = config.label_location > 0
+                and match.col + config.label_location - 2
+                 or match.col + match.len + -config.label_location - 2
 
             vim.api.nvim_buf_set_extmark(
                 vim.fn.winbufnr(match.win_id),

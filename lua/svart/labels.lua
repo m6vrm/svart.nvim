@@ -200,6 +200,7 @@ end
 
 local M = {}
 
+-- todo: need a way to test this function
 function M.make_context(config, buf, win, excluded_win_ids)
     local history = {}
     local labeled_matches = make_matches_bimap()
@@ -235,13 +236,13 @@ function M.make_context(config, buf, win, excluded_win_ids)
             win.run_on(win_matches.win_id, function()
                 discard_offscreen_labels(labeled_matches, win_matches.bounds)
                 discard_conflicting_labels(labels_pool, win_matches.list, buf)
-                label_prev_matches(win_matches.list, labels_pool, prev_labeled_matches, labeled_matches)
             end)
         end
 
         -- sort and label matches
         local sorted_matches = {}
         sort_matches(matches, sorted_matches)
+        label_prev_matches(sorted_matches, labels_pool, prev_labeled_matches, labeled_matches)
         label_matches(sorted_matches, labels_pool, labeled_matches)
 
         history[query] = labeled_matches.copy()
