@@ -16,10 +16,9 @@ local function make_labels_pool(atoms, min_count, max_len)
     local discarded = {}
 
     local available = function(label)
-        -- label isn't available if its prefix
-        -- exists in the discarded labels list
         for discarded_label, _ in pairs(discarded) do
-            if utils.string_prefix(label, discarded_label) then
+            if utils.string_prefix(label, discarded_label)
+                or utils.string_prefix(discarded_label, label) then
                 return false
             end
         end
@@ -35,19 +34,18 @@ local function make_labels_pool(atoms, min_count, max_len)
             local tail = {}
 
             if labels.first() == nil then
-                -- first time generate labels from atoms directly
+                -- first labels are equal to atoms
                 for _, atom in ipairs(atoms) do
                     if available(atom) then
                         table.insert(tail, atom)
                     end
                 end
             else
-                -- then concatenate atoms one to another
-                -- to create more labels if needed
+                -- concatenate atoms to create more labels if needed
                 for _, label in labels.pairs() do
                     for _, atom in ipairs(atoms) do
                         if atom ~= label:sub(-#atom) then -- skip atom if it's equal
-                                                          -- to the label's last char
+                                                          -- to the labels last char
                             local new_label = label .. atom
 
                             if #new_label <= max_len and available(new_label) then
@@ -65,7 +63,7 @@ local function make_labels_pool(atoms, min_count, max_len)
 
             for _, label in ipairs(tail) do
                 -- add freshly generated label to the pool
-                -- and remove it's prefix from the pool to avoid ambiguity
+                -- and remove its prefix to avoid ambiguity
                 local prefix = label:sub(1, -2)
                 labels.remove_value(prefix)
                 labels.append(label)
@@ -102,7 +100,7 @@ local function make_labels_pool(atoms, min_count, max_len)
 end
 
 local function sort_matches(matches, sorted_matches)
-    -- sort matches by distance to the bounds middle line
+    -- sort matches by distance to the middle line of the visible bounds
     local win_bounds = {}
 
     for _, win_matches in ipairs(matches.wins) do
@@ -282,6 +280,7 @@ function M.test()
     local tests = require("svart.tests")
 
     -- make_labels_pool
+    -- todo: rewrite tests
     do
         -- generation
         local atoms = { "a", "b", "c", "d" }
@@ -333,6 +332,17 @@ function M.test()
         tests.assert_eq(labels_pool.take(), "ca")
         tests.assert_eq(labels_pool.take(), "cb")
         tests.assert_eq(labels_pool.take(), nil)
+
+        labels_pool = make_labels_pool(atoms, 6, 2)
+        labels_pool.discard("bla")
+        -- b, bl, (bla), bla* must be discarded
+        assert(not labels_pool.available("b"))
+        assert(not labels_pool.available("bl"))
+        assert(not labels_pool.available("bla"))
+        assert(not labels_pool.available("blaz"))
+        -- bz, blz must be available
+        assert(labels_pool.available("bz"))
+        assert(labels_pool.available("blz"))
 
         -- take first
         labels_pool = make_labels_pool(atoms, 3, 2)
