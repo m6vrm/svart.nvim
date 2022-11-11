@@ -75,7 +75,7 @@ function M.make_context(config)
 
         for _, win_id in ipairs(win_ids) do
             vim.api.nvim_set_current_win(win_id)
-            win_handler(win_id, saved_win_id)
+            win_handler(win_id)
         end
 
         vim.api.nvim_set_current_win(saved_win_id)

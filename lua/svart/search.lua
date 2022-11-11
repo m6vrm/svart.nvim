@@ -61,7 +61,7 @@ function M.search(exact, query, win_ctx)
         wins = {},
     }
 
-    win_ctx.for_each(function(win_id, current_win_id)
+    win_ctx.for_each(function(win_id)
         local bounds = buf.visible_bounds()
         local cursor = win.cursor()
 
