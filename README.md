@@ -31,8 +31,6 @@ vim.keymap.set({ "n", "x", "o" }, "gs", "<Cmd>SvartRepeat<CR>") -- repeat with l
 
 **Configuration**
 
-There's no need to call `svart.configure` without any configuration.
-
 ```lua
 local svart = require("svart")
 
@@ -61,6 +59,8 @@ svart.configure({
     ui_dim_content = true, -- dim buffer content during search
 })
 ```
+
+> There's no need to call `svart.configure` without any configuration.
 
 **Highlight groups**
 

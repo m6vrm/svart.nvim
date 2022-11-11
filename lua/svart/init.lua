@@ -56,7 +56,7 @@ function M.search(params)
 
     local excluded_win_ids = excluded_win_ids()
 
-    local win_ctx = win.make_context()
+    local win_ctx = win.make_context(config)
     local search_ctx = search.make_context(config, win, excluded_win_ids)
     local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
 

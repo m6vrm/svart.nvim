@@ -61,8 +61,10 @@ function M.save_view_state()
     return this
 end
 
-function M.make_context()
-    local win_ids = focusable_win_ids()
+function M.make_context(config)
+    local win_ids = config.search_multi_window
+        and focusable_win_ids()
+         or { vim.api.nvim_get_current_win() }
 
     local this = {}
 
