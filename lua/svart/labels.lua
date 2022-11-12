@@ -127,12 +127,10 @@ local function sort_matches(matches, sorted_matches)
     end)
 end
 
--- positive foresight: discard `foresight` characters from start of the match
--- negative foresight: discard every character in the match
-local function discard_conflicting_labels(foresight, labels_pool, matches, buf)
+local function discard_conflicting_labels(exact, foresight, labels_pool, matches, buf)
     -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
-        local start = foresight >= 0
+        local start = exact
             and match.col + match.len
              or match.col
 
@@ -242,10 +240,8 @@ function M.make_context(config, buf, win, excluded_win_ids)
         -- discard invalid labels
         for _, win_matches in ipairs(matches.wins) do
             win.run_on(win_matches.win_id, function()
-                -- for regex search discard every char in the match
-                local foresight = exact and config.label_foresight or -1
                 discard_offscreen_labels(labeled_matches, win_matches.bounds)
-                discard_conflicting_labels(foresight, labels_pool, win_matches.list, buf)
+                discard_conflicting_labels(exact, config.label_conflict_foresight, labels_pool, win_matches.list, buf)
             end)
         end
 
@@ -382,7 +378,7 @@ function M.test(tests)
         -- foresight = 1, len = 1
         local labels_pool = make_labels_pool({}, 1, 1)
         local matches = { { line = 1, col = 1, len = 1 }, { line = 1, col = 6, len = 1 } }
-        discard_conflicting_labels(1, labels_pool, matches, buf)
+        discard_conflicting_labels(true, 1, labels_pool, matches, buf)
         assert(not labels_pool.available("e"))
         assert(not labels_pool.available("in"))
         assert(labels_pool.available("s"))
@@ -390,7 +386,7 @@ function M.test(tests)
 
         -- foresight = 2, len = 1
         labels_pool = make_labels_pool({}, 1, 1)
-        discard_conflicting_labels(2, labels_pool, matches, buf)
+        discard_conflicting_labels(true, 2, labels_pool, matches, buf)
         assert(not labels_pool.available("e"))
         assert(not labels_pool.available("in"))
         assert(not labels_pool.available("s"))
@@ -399,15 +395,15 @@ function M.test(tests)
         -- foresight = 2, len = 2
         labels_pool = make_labels_pool({}, 1, 1)
         matches = { { line = 1, col = 1, len = 2 } }
-        discard_conflicting_labels(2, labels_pool, matches, buf)
+        discard_conflicting_labels(true, 2, labels_pool, matches, buf)
         assert(not labels_pool.available("s"))
         assert(labels_pool.available("e"))
         assert(labels_pool.available("t"))
 
-        -- foresight = -1, discard every character in the match
+        -- foresight = 2, discard every character in the match
         labels_pool = make_labels_pool({}, 1, 1)
         matches = { { line = 1, col = 1, len = 4 } }
-        discard_conflicting_labels(-1, labels_pool, matches, buf)
+        discard_conflicting_labels(false, 2, labels_pool, matches, buf)
         assert(not labels_pool.available("t"))
         assert(not labels_pool.available("e"))
         assert(not labels_pool.available("s"))
