@@ -6,6 +6,12 @@ local function search_regex(exact, query)
     return exact and "\\V" .. vim.fn.escape(query, "\\") or query
 end
 
+local function match_len(line, col, regex)
+    local line_part = line:sub(col)
+    local match_str = vim.fn.matchstr(line_part, regex)
+    return #match_str
+end
+
 local function directional_search(exact, query, backwards, bounds)
     if query == "" then
         return function() return nil end
@@ -29,15 +35,7 @@ local function directional_search(exact, query, backwards, bounds)
         local line_nr, col = unpack(match)
         if line_nr == 0 and col == 0 then return saved_view_state.restore() end
 
-        local match_len = #query
-
-        -- get length of the regex match
-        if not exact then
-            local line = buf.line_at(line_nr):sub(col, -1)
-            local matched_str = vim.fn.matchstr(line, regex)
-            match_len = #matched_str
-        end
-
+        local match_len = exact and #query or match_len(buf.line_at(line_nr), col, regex)
         return { line = line_nr, col = col, len = match_len }
     end
 end
@@ -266,6 +264,23 @@ function M.test()
         tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
         ctx.prev_match()
         tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
+    end
+
+    -- match_len
+    do
+        local line = "test line"
+
+        -- beginning
+        tests.assert_eq(match_len(line, 1, "t.s."), 4)
+
+        -- end
+        tests.assert_eq(match_len(line, 5, "l.n."), 4)
+
+        -- middle
+        tests.assert_eq(match_len(line, 1, "st.li"), 5)
+
+        -- whole
+        tests.assert_eq(match_len(line, 1, ".*"), #line)
     end
 end
 
