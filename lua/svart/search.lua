@@ -91,9 +91,8 @@ function M.search(exact, query, win_ctx)
     return matches
 end
 
-function M.make_context(config, win, win_ctx)
+function M.make_context(config, win, excluded_win_ids)
     local cursor = win.cursor()
-    local excluded_win_ids = win_ctx.excluded_win_ids()
 
     local flat_matches = {}
     local current_idx = 0

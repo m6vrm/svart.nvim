@@ -44,8 +44,10 @@ function M.search(params)
     local query = params.query
 
     local win_ctx = win.make_context(config)
-    local search_ctx = search.make_context(config, win, win_ctx)
-    local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, win_ctx)
+    local excluded_win_ids = win_ctx.excluded_win_ids()
+
+    local search_ctx = search.make_context(config, win, excluded_win_ids)
+    local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
 
     local prompt = ui.prompt()
     local dim = ui.dim(win_ctx)
