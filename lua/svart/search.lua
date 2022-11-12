@@ -196,13 +196,13 @@ function M.test()
     do
         local config = { search_wrap_around = true }
         local win = { cursor = function() return { line = 2, col = 1 } end }
-
-        -- empty
         local ctx = M.make_context(config, win, { [3] = true })
+
+        -- new context is empty
         assert(ctx.is_empty())
         tests.assert_eq(ctx.best_match(), nil)
 
-        -- filled
+        -- add some matches from different windows
         ctx.reset({ wins = {
             {
                 win_id = 1,
@@ -220,7 +220,7 @@ function M.test()
         assert(not ctx.is_empty())
         tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
-        -- next
+        -- next match
         ctx.next_match()
         tests.assert_eq(ctx.best_match(), { line = 4, col = 1 })
 
@@ -230,11 +230,11 @@ function M.test()
         ctx.prev_match()
         tests.assert_eq(ctx.best_match(), { line = 4, col = 1 })
 
-        -- prev
+        -- prev match
         ctx.prev_match()
         tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
-        -- preseve best match
+        -- preseve best match when adding new matches
         ctx.reset({ wins = {
             {
                 win_id = 1,
@@ -243,7 +243,7 @@ function M.test()
         } })
         tests.assert_eq(ctx.best_match(), { line = 3, col = 1 })
 
-        -- clear best match
+        -- clear best match if there's no in matches
         ctx.reset({ wins = { { win_id = 1, list = { { line = 1, col = 1 } } } } })
         tests.assert_eq(ctx.best_match(), { line = 1, col = 1 })
 

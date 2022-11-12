@@ -16,6 +16,8 @@ local function make_labels_pool(atoms, min_count, max_len)
     local discarded = {}
 
     local available = function(label)
+        -- `bla` will discard following: b, bl, bla, bla*
+        -- `a` will discard following: a, a*
         for discarded_label, _ in pairs(discarded) do
             if utils.string_prefix(label, discarded_label)
                 or utils.string_prefix(discarded_label, label) then
@@ -202,7 +204,7 @@ end
 
 local M = {}
 
--- todo: need a way to test this function
+-- todo: find a way to test this function
 function M.make_context(config, buf, win, excluded_win_ids)
     local history = {}
     local labeled_matches = make_matches_bimap()
@@ -280,18 +282,17 @@ function M.test()
     local tests = require("svart.tests")
 
     -- make_labels_pool
-    -- todo: rewrite tests
     do
-        -- generation
         local atoms = { "a", "b", "c", "d" }
+
+        -- generate labels
         local labels_pool = make_labels_pool(atoms, 1, 1)
         assert(labels_pool.available("a"))
         assert(labels_pool.available("b"))
         assert(labels_pool.available("c"))
         assert(labels_pool.available("d"))
-        tests.assert_eq(labels_pool.take(), "a")
-        tests.assert_eq(labels_pool.take(), nil)
 
+        -- try to generate more labels with max label length = 1
         labels_pool = make_labels_pool(atoms, 6, 1)
         tests.assert_eq(labels_pool.take(), "a")
         tests.assert_eq(labels_pool.take(), "b")
@@ -299,6 +300,7 @@ function M.test()
         tests.assert_eq(labels_pool.take(), "d")
         tests.assert_eq(labels_pool.take(), nil)
 
+        -- generate more labels with max label length = 2
         labels_pool = make_labels_pool(atoms, 6, 2)
         tests.assert_eq(labels_pool.take(), "b")
         tests.assert_eq(labels_pool.take(), "c")
@@ -308,19 +310,7 @@ function M.test()
         tests.assert_eq(labels_pool.take(), "ad")
         tests.assert_eq(labels_pool.take(), nil)
 
-        labels_pool = make_labels_pool(atoms, 9, 2)
-        tests.assert_eq(labels_pool.take(), "d")
-        tests.assert_eq(labels_pool.take(), "ab")
-        tests.assert_eq(labels_pool.take(), "ac")
-        tests.assert_eq(labels_pool.take(), "ad")
-        tests.assert_eq(labels_pool.take(), "ba")
-        tests.assert_eq(labels_pool.take(), "bc")
-        tests.assert_eq(labels_pool.take(), "bd")
-        tests.assert_eq(labels_pool.take(), "ca")
-        tests.assert_eq(labels_pool.take(), "cb")
-        tests.assert_eq(labels_pool.take(), nil)
-
-        -- discard
+        -- discard single atom label
         labels_pool = make_labels_pool(atoms, 6, 2)
         labels_pool.discard("a")
         assert(not labels_pool.available("a"))
@@ -333,6 +323,7 @@ function M.test()
         tests.assert_eq(labels_pool.take(), "cb")
         tests.assert_eq(labels_pool.take(), nil)
 
+        -- discard multi-atom label
         labels_pool = make_labels_pool(atoms, 6, 2)
         labels_pool.discard("bla")
         -- b, bl, (bla), bla* must be discarded
@@ -344,7 +335,7 @@ function M.test()
         assert(labels_pool.available("bz"))
         assert(labels_pool.available("blz"))
 
-        -- take first
+        -- take first label
         labels_pool = make_labels_pool(atoms, 3, 2)
         local first_label = labels_pool.first()
         tests.assert_eq(labels_pool.take(), first_label)
@@ -372,27 +363,12 @@ function M.test()
                 },
             },
         } }
-        sort_matches(matches, sorted_matches)
+        sort_matches(matches, sorted_matches) -- sorted matches is flat
         tests.assert_eq(sorted_matches[1], { win_id = 2, line = 2, col = 1 })
         tests.assert_eq(sorted_matches[2], { win_id = 1, line = 5, col = 1 })
         tests.assert_eq(sorted_matches[3], { win_id = 2, line = 1, col = 1 })
         tests.assert_eq(sorted_matches[4], { win_id = 1, line = 7, col = 1 })
         tests.assert_eq(sorted_matches[5], { win_id = 1, line = 2, col = 1 })
-
-        sorted_matches = {}
-        matches = { wins = {
-            {
-                win_id = 1,
-                bounds = { top = 1, bottom = 1 },
-                list = {
-                    { win_id = 1, line = 1, col = 1 },
-                    { win_id = 1, line = 2, col = 1 },
-                },
-            },
-        } }
-        sort_matches(matches, sorted_matches)
-        tests.assert_eq(sorted_matches[1], { win_id = 1, line = 1, col = 1 })
-        tests.assert_eq(sorted_matches[2], { win_id = 1, line = 2, col = 1 })
     end
 
     -- discard_conflicting_labels
@@ -434,7 +410,6 @@ function M.test()
             { line = 8, col = 1 },
             { line = 9, col = 1 },
         }
-
         local labels_pool = make_labels_pool({ "a", "b", "c", "d", "e", "f" }, #matches, 2)
         local prev_labeled_matches = utils.make_bimap({
             x = { line = 2, col = 1 },
@@ -443,9 +418,18 @@ function M.test()
         })
         local labeled_matches = utils.make_bimap()
         label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+
+        -- take labels from `prev_labeled_matches`
         tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
         tests.assert_eq(labeled_matches.value("c"), { line = 9, col = 1 })
         tests.assert_eq(labeled_matches.value("zz"), { line = 7, col = 1 })
+
+        -- skip discarded labels
+        labels_pool.discard("zz")
+        labeled_matches = utils.make_bimap()
+        label_prev_matches(matches, labels_pool, prev_labeled_matches, labeled_matches)
+
+        tests.assert_eq(labeled_matches.value("zz"), nil)
     end
 
     -- label_matches
@@ -457,7 +441,6 @@ function M.test()
             { line = 8, col = 1 },
             { line = 9, col = 1 },
         }
-
         local labels_pool = make_labels_pool({ "a", "b", "c", "d", "e", "f" }, #matches, 2)
         local labeled_matches = utils.make_bimap({
             x = { line = 2, col = 1 },
@@ -465,8 +448,11 @@ function M.test()
             zz = { line = 7, col = 1 },
         })
         label_matches(matches, labels_pool, labeled_matches)
+
+        -- use existing labels from `labeled_matches`
+        -- otherwise use labels from `labels_pool`
         tests.assert_eq(labeled_matches.value("b"), { line = 5, col = 1 })
-        tests.assert_eq(labeled_matches.value("c"), { line = 7, col = 1 })
+        tests.assert_eq(labeled_matches.value("c"), { line = 7, col = 1 }) -- since c is shorter than zz
         tests.assert_eq(labeled_matches.value("d"), { line = 8, col = 1 })
         tests.assert_eq(labeled_matches.value("e"), { line = 9, col = 1 })
         tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
@@ -479,7 +465,10 @@ function M.test()
             c = { win_id = 1, line = 9, col = 1 },
             zz = { win_id = 2, line = 7, col = 1 },
         })
-        discard_offwindow_labels(labeled_matches, { [2] = true })
+        local excluded_win_ids = { [2] = true }
+        discard_offwindow_labels(labeled_matches, excluded_win_ids)
+
+        -- labels in `excluded_win_ids` windows should be discarded
         tests.assert_eq(labeled_matches.value("zz"), nil)
         tests.assert_eq(labeled_matches.value("x"), { win_id = 1, line = 2, col = 1 })
         tests.assert_eq(labeled_matches.value("c"), { win_id = 1, line = 9, col = 1 })
@@ -492,7 +481,10 @@ function M.test()
             c = { line = 9, col = 1 },
             zz = { line = 7, col = 1 },
         })
-        discard_offscreen_labels(labeled_matches, { top = 1, bottom = 7 })
+        local bounds = { top = 1, bottom = 7 }
+        discard_offscreen_labels(labeled_matches, bounds)
+
+        -- labels outside of `bounds` should be didcarded
         tests.assert_eq(labeled_matches.value("c"), nil)
         tests.assert_eq(labeled_matches.value("x"), { line = 2, col = 1 })
         tests.assert_eq(labeled_matches.value("zz"), { line = 7, col = 1 })
@@ -503,6 +495,8 @@ function M.test()
         local labeled_matches = utils.make_bimap({ aa = { 2, 1 }, ba = { 3, 1 }, bb = { 1, 1 } })
         local current_label = "b"
         discard_irrelevant_labels(labeled_matches, current_label)
+
+        -- labels not starting with `current_label` should be discarded
         tests.assert_eq(labeled_matches.value("aa"), nil)
         tests.assert_eq(labeled_matches.key({ 3, 1 }), "ba")
         tests.assert_eq(labeled_matches.key({ 1, 1 }), "bb")
