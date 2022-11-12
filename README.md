@@ -17,7 +17,7 @@ Install plugin and add keymaps:
 ```lua
 vim.keymap.set({ "n", "x", "o" }, "s", "<Cmd>Svart<CR>")        -- begin exact search
 vim.keymap.set({ "n", "x", "o" }, "S", "<Cmd>SvartRegex<CR>")   -- begin regex search
-vim.keymap.set({ "n", "x", "o" }, "gs", "<Cmd>SvartRepeat<CR>") -- repeat with last searched query
+vim.keymap.set({ "n", "x", "o" }, "gs", "<Cmd>SvartRepeat<CR>") -- repeat with last accepted query
 ```
 
 **Usage**
@@ -30,6 +30,8 @@ vim.keymap.set({ "n", "x", "o" }, "gs", "<Cmd>SvartRepeat<CR>") -- repeat with l
 - Use `Backspace`, `C-W`, `C-U` to edit search query
 
 **Configuration**
+
+> **Note:** There's no need to call `svart.configure` without configuration.
 
 ```lua
 local svart = require("svart")
@@ -59,8 +61,6 @@ svart.configure({
     ui_dim_content = true, -- dim buffer content during search
 })
 ```
-
-> There's no need to call `svart.configure` without any configuration.
 
 **Highlight groups**
 
