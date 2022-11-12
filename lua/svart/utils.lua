@@ -174,9 +174,7 @@ function M.make_bimap(keys_to_values, values_to_keys, count, value_to_string)
     return this
 end
 
-function M.test()
-    local tests = require("svart.tests")
-
+function M.test(tests)
     -- table_keys
     do
         -- map

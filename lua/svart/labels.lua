@@ -277,9 +277,7 @@ function M.make_context(config, buf, win, excluded_win_ids)
     return this
 end
 
-function M.test()
-    local tests = require("svart.tests")
-
+function M.test(tests)
     -- make_labels_pool
     do
         local atoms = { "a", "b", "c", "d" }

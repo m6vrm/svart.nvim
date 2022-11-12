@@ -174,9 +174,7 @@ function M.make_context(config, win, excluded_win_ids)
     return this
 end
 
-function M.test()
-    local tests = require("svart.tests")
-
+function M.test(tests)
     -- search_regex
     do
         local query = [[ \n test \n ]]

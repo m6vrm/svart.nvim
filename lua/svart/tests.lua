@@ -1,10 +1,10 @@
+local M = {}
+
 local function test(module)
     package.loaded[module] = nil
-    require(module).test()
+    require(module).test(M)
     print(module .. " test passed")
 end
-
-local M = {}
 
 function M.assert_eq(lhs, rhs, message)
     local lhs = vim.inspect(lhs)

@@ -147,9 +147,7 @@ function M.jump_to(pos)
     end)
 end
 
-function M.test()
-    local tests = require("svart.tests")
-
+function M.test(tests)
     -- direction
     do
         -- forward
