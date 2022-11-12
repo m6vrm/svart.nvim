@@ -30,17 +30,6 @@ local function accept_match(match, params)
     end
 end
 
-local function excluded_win_ids()
-    -- in OP- and V-mode
-    -- exclude windows with other than current buffer
-    if win.is_op_mode() or win.is_visual_mode() then
-        local win_ids = win.other_buf_win_ids()
-        return utils.table_flip(win_ids)
-    end
-
-    return {}
-end
-
 local M = {}
 
 function M.configure(overrides)
@@ -54,11 +43,9 @@ function M.search(params)
     local exact = params.exact
     local query = params.query
 
-    local excluded_win_ids = excluded_win_ids()
-
     local win_ctx = win.make_context(config)
-    local search_ctx = search.make_context(config, win, excluded_win_ids)
-    local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, excluded_win_ids)
+    local search_ctx = search.make_context(config, win, win_ctx)
+    local labels_ctx = params.labels_ctx or labels.make_context(config, buf, win, win_ctx)
 
     local prompt = ui.prompt()
     local dim = ui.dim(win_ctx)

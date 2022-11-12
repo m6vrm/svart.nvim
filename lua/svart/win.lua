@@ -1,3 +1,5 @@
+local utils = require("svart.utils")
+
 -- 1 = forward, -1 = backward, 0 = none
 local function direction(from, to)
     if to.line > from.line then
@@ -37,17 +39,34 @@ local function focusable_win_ids()
     return win_ids
 end
 
-local M = {}
+-- windows with buffers other than current
+local function other_buf_win_ids()
+    local current_buf_id = vim.api.nvim_get_current_buf()
+    local focusable_win_ids = focusable_win_ids()
+    local win_ids = {}
 
-function M.is_op_mode()
+    for _, win_id in ipairs(focusable_win_ids) do
+        local buf_id = vim.fn.winbufnr(win_id)
+
+        if buf_id ~= current_buf_id then
+            table.insert(win_ids, win_id)
+        end
+    end
+
+    return win_ids
+end
+
+local function is_op_mode()
     local mode = vim.api.nvim_get_mode().mode
     return mode:lower():match("o")
 end
 
-function M.is_visual_mode()
+local function is_visual_mode()
     local mode = vim.api.nvim_get_mode().mode
     return mode:lower():match("v")
 end
+
+local M = {}
 
 function M.save_view_state()
     local view = vim.fn.winsaveview()
@@ -62,23 +81,34 @@ function M.save_view_state()
 end
 
 function M.make_context(config)
+    local current_win_id = vim.api.nvim_get_current_win()
+
     local win_ids = config.search_multi_window
         and focusable_win_ids()
-         or { vim.api.nvim_get_current_win() }
+         or { current_win_id }
 
     local this = {}
 
     this.for_each = function(win_handler)
         assert(next(win_ids) ~= nil)
 
-        local saved_win_id = vim.api.nvim_get_current_win()
-
         for _, win_id in ipairs(win_ids) do
             vim.api.nvim_set_current_win(win_id)
             win_handler(win_id)
         end
 
-        vim.api.nvim_set_current_win(saved_win_id)
+        vim.api.nvim_set_current_win(current_win_id)
+    end
+
+    -- in OP- and V-modes exclude windows
+    -- with other than current buffer
+    this.excluded_win_ids = function()
+        if is_op_mode() or is_visual_mode() then
+            local win_ids = other_buf_win_ids()
+            return utils.table_flip(win_ids)
+        end
+
+        return {}
     end
 
     return this
@@ -92,23 +122,6 @@ function M.run_on(win_id, win_handler)
 
     vim.api.nvim_set_current_win(saved_win_id)
     return result
-end
-
--- windows with buffer other than current
-function M.other_buf_win_ids()
-    local win_ids = {}
-    local focusable_win_ids = focusable_win_ids()
-    local current_buf_id = vim.api.nvim_get_current_buf()
-
-    for _, win_id in ipairs(focusable_win_ids) do
-        local buf_id = vim.fn.winbufnr(win_id)
-
-        if buf_id ~= current_buf_id then
-            table.insert(win_ids, win_id)
-        end
-    end
-
-    return win_ids
 end
 
 function M.cursor()
@@ -128,7 +141,7 @@ function M.jump_to(pos)
 
     M.run_on(pos.win_id, function()
         -- todo: OP-mode on EOF doesn't work properly
-        if M.is_op_mode() and direction ~= -1 then
+        if is_op_mode() and direction ~= -1 then
             push_cursor(false)
         end
     end)

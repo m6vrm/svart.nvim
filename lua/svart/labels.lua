@@ -203,7 +203,9 @@ end
 local M = {}
 
 -- todo: need a way to test this function
-function M.make_context(config, buf, win, excluded_win_ids)
+function M.make_context(config, buf, win, win_ctx)
+    local excluded_win_ids = win_ctx.excluded_win_ids()
+
     local history = {}
     local labeled_matches = make_matches_bimap()
 
