@@ -104,7 +104,7 @@ function M.search(params)
             local matches = search.search(exact, query, win_ctx)
 
             search_ctx.reset(matches)
-            labels_ctx.label_matches(matches, query, label)
+            labels_ctx.label_matches(matches, exact, query, label)
 
             highlight.matches(matches)
             highlight.cursor(search_ctx.best_match())

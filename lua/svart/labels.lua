@@ -127,10 +127,15 @@ local function sort_matches(matches, sorted_matches)
     end)
 end
 
+-- positive foresight: discard `foresight` characters from start of the match
+-- negative foresight: discard every character in the match
 local function discard_conflicting_labels(foresight, labels_pool, matches, buf)
     -- discard labels that may conflict with next possible query character
     for _, match in ipairs(matches) do
-        local start = match.col + match.len
+        local start = foresight >= 0
+            and match.col + match.len
+             or match.col
+
         local stop = math.max(match.col + foresight, match.col + match.len)
 
         for col = start, stop do
@@ -214,7 +219,7 @@ function M.make_context(config, buf, win, excluded_win_ids)
 
     local this = {}
 
-    this.label_matches = function(matches, query, label)
+    this.label_matches = function(matches, exact, query, label)
         -- query too short to label matches, break
         if query == "" or #query < config.label_min_query_len then
             history = {}
@@ -237,8 +242,10 @@ function M.make_context(config, buf, win, excluded_win_ids)
         -- discard invalid labels
         for _, win_matches in ipairs(matches.wins) do
             win.run_on(win_matches.win_id, function()
+                -- for regex search discard every char in the match
+                local foresight = exact and config.label_foresight or -1
                 discard_offscreen_labels(labeled_matches, win_matches.bounds)
-                discard_conflicting_labels(config.label_conflict_foresight, labels_pool, win_matches.list, buf)
+                discard_conflicting_labels(foresight, labels_pool, win_matches.list, buf)
             end)
         end
 
@@ -396,6 +403,18 @@ function M.test(tests)
         assert(not labels_pool.available("s"))
         assert(labels_pool.available("e"))
         assert(labels_pool.available("t"))
+
+        -- foresight = -1, discard every character in the match
+        labels_pool = make_labels_pool({}, 1, 1)
+        matches = { { line = 1, col = 1, len = 4 } }
+        discard_conflicting_labels(-1, labels_pool, matches, buf)
+        assert(not labels_pool.available("t"))
+        assert(not labels_pool.available("e"))
+        assert(not labels_pool.available("s"))
+        assert(not labels_pool.available("t"))
+        assert(labels_pool.available("l"))
+        assert(labels_pool.available("i"))
+        assert(labels_pool.available("n"))
     end
 
     -- label_prev_matches

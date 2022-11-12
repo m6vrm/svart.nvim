@@ -9,12 +9,13 @@ return {
 
     label_atoms = "jfkdlsahgnuvrbytmiceoxwpqz", -- allowed label chars
     label_location = -1,                        -- label location relative to the match
-                                                -- positive = relative to the start of the match
-                                                -- 0 or negative = relative to the end of the match
+                                                -- positive: relative to the start of the match
+                                                -- 0 or negative: relative to the end of the match
     label_max_len = 2,                          -- max label length
     label_min_query_len = 1,                    -- min query length required to show labels
     label_hide_irrelevant = true,               -- hide irrelevant labels after start typing label to go to
     label_conflict_foresight = 3,               -- number of chars from the start of the match to discard from labels pool
+                                                -- negative means discard every char in the match
 
     search_update_register = true, -- update search (/) register with last used query after accepting match
     search_wrap_around = true,     -- wrap around when navigating to next/prev match
