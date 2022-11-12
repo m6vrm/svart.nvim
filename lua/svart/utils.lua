@@ -180,18 +180,22 @@ function M.test()
 
     -- table_keys
     do
+        -- map
         local keys = M.table_keys({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#keys, 3)
 
+        -- array
         keys = M.table_keys({ "v1", "v2", "v3" })
         tests.assert_eq(keys, { 1, 2, 3 })
     end
 
     -- table_values
     do
+        -- map
         local values = M.table_values({ k1 = 1, k2 = 2, k3 = 3 })
         tests.assert_eq(#values, 3)
 
+        -- array
         values = M.table_values({ "v1", "v2", "v3" })
         tests.assert_eq(values, { "v1", "v2", "v3" })
     end
@@ -206,13 +210,20 @@ function M.test()
 
     -- string_prefix
     do
+        -- prefix equal to string
         assert(M.string_prefix("hello", "hello"))
+
+        -- prefix of the string
         assert(M.string_prefix("hello", "hell"))
+
+        -- empty string
         assert(not M.string_prefix("", "hello"))
+
+        -- suffix of the string
         assert(not M.string_prefix("hello", "ello"))
     end
 
-    -- make_bmap
+    -- make_bimap
     do
         -- empty
         local bimap = M.make_bimap()
@@ -227,7 +238,7 @@ function M.test()
         bimap.append("v1")
         bimap.append("v1")
         bimap.append("v2")
-        bimap.append("v2") -- duplicates not allowed
+        bimap.append("v2") -- duplicates aren't allowed
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.first(), "v1")
         tests.assert_eq(bimap.drop_first(), "v1")
@@ -245,19 +256,22 @@ function M.test()
         tests.assert_eq(bimap.key("v1"), "k1")
         tests.assert_eq(bimap.key("v2"), "k2")
 
-        -- replace key
+        -- replace key (set new value to the existing key)
         bimap.set("k1", "v3")
         tests.assert_eq(bimap.count(), 2)
         tests.assert_eq(bimap.value("k1"), "v3")
         tests.assert_eq(bimap.key("v3"), "k1")
-        tests.assert_eq(bimap.key("v1"), nil)
+        tests.assert_eq(bimap.key("v1"), nil) -- old value is removed
 
-        -- replace value
+        -- replace value (set existing value to the new key)
         bimap.set("k3", "v3")
         tests.assert_eq(bimap.count(), 2)
-        tests.assert_eq(bimap.value("k1"), nil)
+        tests.assert_eq(bimap.value("k1"), nil) -- old key is removed since
+                                                -- duplicates aren't allowed
         tests.assert_eq(bimap.key("v3"), "k3")
 
+        -- copy now, then change original,
+        -- then test that copy not changed
         local bimap_copy = bimap.copy()
 
         -- remove key
@@ -270,7 +284,7 @@ function M.test()
         tests.assert_eq(bimap.count(), 0)
         tests.assert_eq(bimap.key("v2"), nil)
 
-        -- copy
+        -- test copy not changed
         tests.assert_eq(bimap_copy.count(), 2)
         tests.assert_eq(bimap_copy.value("k3"), "v3")
         tests.assert_eq(bimap_copy.value("k2"), "v2")
