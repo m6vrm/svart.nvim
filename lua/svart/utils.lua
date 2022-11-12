@@ -36,7 +36,6 @@ function M.string_prefix(string, prefix)
 end
 
 -- bidirectional map (https://www.boost.org/doc/libs/1_79_0/libs/bimap/doc/html/index.html)
--- todo: test value_to_string
 function M.make_bimap(keys_to_values, values_to_keys, count, value_to_string)
     local value_to_string = value_to_string or function(value) return vim.inspect(value) end
 
@@ -299,6 +298,16 @@ function M.test()
         local bimap = M.make_bimap({ nil, 1, 2, nil, 3 })
         tests.assert_eq(bimap.count(), 3)
         tests.assert_eq(bimap.values(), { 1, 2, 3 })
+
+        -- custom `value_to_string`
+        local value_to_string = function(value) return vim.inspect({ value[1] }) end
+        local bimap = M.make_bimap(nil, nil, nil, value_to_string)
+
+        bimap.append({ 1, 1 })
+        bimap.append({ 1, 2 })
+        tests.assert_eq(bimap.count(), 1)
+        assert(bimap.has_value({ 1, 2 }))
+        assert(bimap.has_value({ 1, 1 })) -- true since `has_value` internally uses the `value_to_string`
     end
 end
 

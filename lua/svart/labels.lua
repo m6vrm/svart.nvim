@@ -1,6 +1,5 @@
 local utils = require("svart.utils")
 
--- todo: write test
 local function make_matches_bimap()
     local match_to_string = function(match)
         local static_match = { win_id = match.win_id, line = match.line, col = match.col }
