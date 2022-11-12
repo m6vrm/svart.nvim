@@ -92,19 +92,19 @@ end
 function M.make_context(config, win, excluded_win_ids)
     local cursor = win.cursor()
 
-    local flat_matches = {}
+    local all_matches = {}
     local current_idx = 0
     local current_match = nil
 
     local set_current_index = function(idx)
         current_idx = idx
-        current_match = flat_matches[idx]
+        current_match = all_matches[idx]
     end
 
     local this = {}
 
     this.reset = function(matches)
-        flat_matches = {}
+        all_matches = {}
 
         -- collect matches from all windows
         for _, win_matches in ipairs(matches.wins) do
@@ -118,13 +118,13 @@ function M.make_context(config, win, excluded_win_ids)
                 end)
 
                 for _, match in ipairs(matches_copy) do
-                    table.insert(flat_matches, match)
+                    table.insert(all_matches, match)
                 end
             end
         end
 
         -- don't change current match if it's equal to the previous one
-        for i, match in ipairs(flat_matches) do
+        for i, match in ipairs(all_matches) do
             if current_match ~= nil
                 and match.win_id == current_match.win_id
                 and match.line == current_match.line
@@ -137,7 +137,7 @@ function M.make_context(config, win, excluded_win_ids)
         -- or set current match to the first match after the cursor
         local last_idx = 0
 
-        for i, match in ipairs(flat_matches) do
+        for i, match in ipairs(all_matches) do
             if (match.line == cursor.line and match.col >= cursor.col)
                 or match.line > cursor.line then
                 set_current_index(i)
@@ -147,27 +147,27 @@ function M.make_context(config, win, excluded_win_ids)
             last_idx = i
         end
 
-        -- or set current match to the nearest to the cursor
+        -- or set current match to the nearest to the cursor one
         set_current_index(last_idx)
     end
 
     this.is_empty = function()
-        return next(flat_matches) == nil
+        return next(all_matches) == nil
     end
 
     this.best_match = function()
-        return flat_matches[current_idx]
+        return all_matches[current_idx]
     end
 
     this.next_match = function()
         if current_idx == 0 then return end
-        local last_idx = config.search_wrap_around and 1 or #flat_matches
-        set_current_index(current_idx >= #flat_matches and last_idx or current_idx + 1)
+        local last_idx = config.search_wrap_around and 1 or #all_matches
+        set_current_index(current_idx >= #all_matches and last_idx or current_idx + 1)
     end
 
     this.prev_match = function()
         if current_idx == 0 then return end
-        local last_idx = config.search_wrap_around and #flat_matches or 1
+        local last_idx = config.search_wrap_around and #all_matches or 1
         set_current_index(current_idx <= 1 and last_idx or current_idx - 1)
     end
 
