@@ -1,4 +1,3 @@
-local utils = require("svart.utils")
 local win = require("svart.win")
 local buf = require("svart.buf")
 

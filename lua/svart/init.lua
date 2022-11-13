@@ -4,7 +4,6 @@ local input = require("svart.input")
 local labels = require("svart.labels")
 local search = require("svart.search")
 local ui = require("svart.ui")
-local utils = require("svart.utils")
 local win = require("svart.win")
 
 local function make_params(exact, query, labels_ctx)
