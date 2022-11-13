@@ -1,4 +1,4 @@
-![Preview](https://gitlab.com/madyanov/svart.nvim/uploads/478fa6119b0dc551fb270f29a5fb0ae1/output.gif)
+![Preview](https://gitlab.com/madyanov/svart.nvim/uploads/e18283000accf0281d34ac77b1a46aa4/output.gif)
 
 Jump to any location with few keystrokes.
 
