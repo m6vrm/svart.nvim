@@ -30,7 +30,15 @@ function M.prompt()
     end
 
     this.clear = function()
+        -- workaround to fix the need for
+        -- an extra keystroke when cmdheight=0
+        -- (issue #4)
+        local cmdheight = vim.opt.cmdheight:get()
+        vim.opt.cmdheight = math.max(1, cmdheight)
+
         vim.api.nvim_echo({}, false, {})
+
+        vim.opt.cmdheight = cmdheight
     end
 
     return this

@@ -115,6 +115,8 @@ function M.search(params)
 
     dim.clear()
     prompt.clear()
+
+    ui.redraw()
 end
 
 function M.search_regex()
