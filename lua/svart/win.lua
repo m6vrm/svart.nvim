@@ -83,13 +83,14 @@ end
 function M.make_context(config)
     local current_win_id = vim.api.nvim_get_current_win()
 
-    local win_ids = config.search_multi_window
-        and focusable_win_ids()
-         or { current_win_id }
-
     local this = {}
 
     this.for_each = function(win_handler)
+        -- always get actual focusable win ids
+        local win_ids = config.search_multi_window
+            and focusable_win_ids()
+            or { current_win_id }
+
         assert(next(win_ids) ~= nil)
 
         for _, win_id in ipairs(win_ids) do
@@ -145,6 +146,11 @@ function M.jump_to(pos)
             push_cursor(false)
         end
     end)
+end
+
+function M.buf_nr(win_id, callback)
+    local buf_nr = vim.fn.winbufnr(win_id)
+    if buf_nr ~= -1 then callback(buf_nr) end
 end
 
 function M.test(tests)
