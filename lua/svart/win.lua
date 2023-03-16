@@ -20,19 +20,30 @@ local function push_cursor(backwards)
     vim.fn.search("\\_.", flags)
 end
 
+local function win_is_searchable(win_id)
+    if not vim.api.nvim_win_is_valid(win_id) then
+        return false
+    end
+
+    local config = vim.api.nvim_win_get_config(win_id)
+    return config.focusable and config.relative == ""
+end
+
 -- current window is guaranteed to be first
-local function focusable_win_ids()
+local function searchable_win_ids(only_current)
     local current_win_id = vim.api.nvim_get_current_win()
-    local win_ids = { current_win_id }
+    local win_ids = win_is_searchable(current_win_id)
+        and { current_win_id }
+        or {}
 
-    -- use focusable windows from the current tab
-    local tab_win_ids = vim.api.nvim_tabpage_list_wins(0)
+    if not only_current then
+        -- append searchable windows from the current tab
+        local tab_win_ids = vim.api.nvim_tabpage_list_wins(0)
 
-    for _, win_id in ipairs(tab_win_ids) do
-        local focusable = vim.api.nvim_win_get_config(win_id).focusable
-
-        if win_id ~= current_win_id and focusable then
-            table.insert(win_ids, win_id)
+        for _, win_id in ipairs(tab_win_ids) do
+            if win_id ~= current_win_id and win_is_searchable(win_id) then
+                table.insert(win_ids, win_id)
+            end
         end
     end
 
@@ -42,10 +53,10 @@ end
 -- windows with buffers other than current
 local function other_buf_win_ids()
     local current_buf_id = vim.api.nvim_get_current_buf()
-    local focusable_win_ids = focusable_win_ids()
+    local searchable_win_ids = searchable_win_ids(false)
     local win_ids = {}
 
-    for _, win_id in ipairs(focusable_win_ids) do
+    for _, win_id in ipairs(searchable_win_ids) do
         local buf_id = vim.fn.winbufnr(win_id)
 
         if buf_id ~= current_buf_id then
@@ -86,11 +97,8 @@ function M.make_context(config)
     local this = {}
 
     this.for_each = function(win_handler)
-        -- always get actual focusable win ids
-        local win_ids = config.search_multi_window
-            and focusable_win_ids()
-            or { current_win_id }
-
+        -- always get actual searchable win ids
+        local win_ids = searchable_win_ids(not config.search_multi_window)
         assert(next(win_ids) ~= nil)
 
         for _, win_id in ipairs(win_ids) do
@@ -98,7 +106,9 @@ function M.make_context(config)
             win_handler(win_id)
         end
 
-        vim.api.nvim_set_current_win(current_win_id)
+        if vim.api.nvim_win_is_valid(current_win_id) then
+            vim.api.nvim_set_current_win(current_win_id)
+        end
     end
 
     -- in OP- and V-modes exclude windows
