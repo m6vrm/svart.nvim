@@ -150,12 +150,10 @@ function M.jump_to(pos)
 
     vim.api.nvim_win_set_cursor(pos.win_id, { pos.line, pos.col - 1 })
 
-    M.run_on(pos.win_id, function()
-        -- todo: OP-mode on EOF doesn't work properly
-        if is_op_mode() and direction ~= -1 then
-            push_cursor(false)
-        end
-    end)
+    -- todo: OP-mode on EOF doesn't work properly
+    if is_op_mode() and direction ~= -1 then
+        push_cursor(false)
+    end
 end
 
 function M.buf_nr(win_id, callback)
