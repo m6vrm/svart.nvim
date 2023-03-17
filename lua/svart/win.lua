@@ -26,7 +26,7 @@ local function win_is_searchable(win_id)
     end
 
     local config = vim.api.nvim_win_get_config(win_id)
-    return config.focusable and config.relative == ""
+    return config.focusable
 end
 
 -- current window is guaranteed to be first
