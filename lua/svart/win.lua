@@ -20,13 +20,15 @@ local function push_cursor(backwards)
     vim.fn.search("\\_.", flags)
 end
 
-local function run_without_autocommands(callback)
-    local user_ignore = vim.api.nvim_get_option_value('eventignore', {});
-    vim.api.nvim_set_option_value('eventignore', 'all', {})
-    callback();
-    vim.api.nvim_set_option_value('eventignore', user_ignore, {})
-end
+local function run_without_autocmds(handler)
+    local saved_ignore = vim.api.nvim_get_option_value("eventignore", {})
+    vim.api.nvim_set_option_value("eventignore", "all", {})
 
+    local result = handler()
+
+    vim.api.nvim_set_option_value("eventignore", saved_ignore, {})
+    return result
+end
 
 local function win_is_searchable(win_id)
     if not vim.api.nvim_win_is_valid(win_id) then
@@ -109,18 +111,16 @@ function M.make_context(config)
         local win_ids = searchable_win_ids(not config.search_multi_window)
         assert(next(win_ids) ~= nil)
 
-        run_without_autocommands(
-            function()
-                for _, win_id in ipairs(win_ids) do
-                    vim.api.nvim_set_current_win(win_id)
-                    win_handler(win_id)
-                end
-
-                if vim.api.nvim_win_is_valid(current_win_id) then
-                    vim.api.nvim_set_current_win(current_win_id)
-                end
+        run_without_autocmds(function()
+            for _, win_id in ipairs(win_ids) do
+                vim.api.nvim_set_current_win(win_id)
+                win_handler(win_id)
             end
-        )
+
+            if vim.api.nvim_win_is_valid(current_win_id) then
+                vim.api.nvim_set_current_win(current_win_id)
+            end
+        end)
     end
 
     -- in OP- and V-modes exclude windows
@@ -139,18 +139,15 @@ end
 
 function M.run_on(win_id, win_handler)
     local saved_win_id = vim.api.nvim_get_current_win()
-    local result
-    run_without_autocommands(
-        function()
-            vim.api.nvim_set_current_win(win_id)
 
-            result = win_handler()
+    return run_without_autocmds(function()
+        vim.api.nvim_set_current_win(win_id)
 
-            vim.api.nvim_set_current_win(saved_win_id)
-        end
+        local result = win_handler()
 
-    )
-    return result
+        vim.api.nvim_set_current_win(saved_win_id)
+        return result
+    end)
 end
 
 function M.cursor()
@@ -200,19 +197,14 @@ function M.test(tests)
         dir = direction({ line = 1, col = 1 }, { line = 1, col = 1 })
         tests.assert_eq(dir, 0)
 
-        -- restore autocommands
-        local initial_ignore = 'BufAdd,BufEnter'
-        local ignore_all = 'all'
-
-        vim.api.nvim_set_option_value('eventignore', initial_ignore, {})
-        run_without_autocommands(
-            function()
-                local option_in_callback = vim.api.nvim_get_option_value('eventignore', {})
-                tests.assert_eq(option_in_callback, ignore_all)
-            end
-        )
-        local after_ignore = vim.api.nvim_get_option_value('eventignore', {})
-        tests.assert_eq(after_ignore, initial_ignore)
+        -- restore autocmds
+        local before_ignore = vim.api.nvim_get_option_value("eventignore", {})
+        run_without_autocmds(function()
+            local inner_ignore = vim.api.nvim_get_option_value("eventignore", {})
+            tests.assert_eq(inner_ignore, "all")
+        end)
+        local after_ignore = vim.api.nvim_get_option_value("eventignore", {})
+        tests.assert_eq(after_ignore, before_ignore)
     end
 end
 
