@@ -196,15 +196,19 @@ function M.test(tests)
         -- no direction
         dir = direction({ line = 1, col = 1 }, { line = 1, col = 1 })
         tests.assert_eq(dir, 0)
+    end
 
-        -- restore autocmds
+    -- restore autocmds
+    do
         local before_ignore = vim.api.nvim_get_option_value("eventignore", {})
-        run_without_autocmds(function()
+        local value = run_without_autocmds(function()
             local inner_ignore = vim.api.nvim_get_option_value("eventignore", {})
             tests.assert_eq(inner_ignore, "all")
+            return "some value"
         end)
         local after_ignore = vim.api.nvim_get_option_value("eventignore", {})
         tests.assert_eq(after_ignore, before_ignore)
+        tests.assert_eq(value, "some value")
     end
 end
 
