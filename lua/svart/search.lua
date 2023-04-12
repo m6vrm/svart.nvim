@@ -47,7 +47,7 @@ function M.update_register(exact, query)
     local saved_view_state = win.save_view_state()
     local regex = search_regex(exact, query)
 
-    vim.cmd("/" .. regex)
+    vim.fn.setreg("/", regex)
 
     saved_view_state.restore()
 end
