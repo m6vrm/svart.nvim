@@ -163,6 +163,7 @@ function M.jump_to(pos)
     local cursor = M.cursor()
     local direction = direction(cursor, pos)
 
+    vim.cmd("normal! m'") -- register current position in the jump list before jumping
     vim.api.nvim_win_set_cursor(pos.win_id, { pos.line, pos.col - 1 })
 
     -- todo: OP-mode on EOF doesn't work properly
