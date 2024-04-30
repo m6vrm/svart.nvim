@@ -50,10 +50,10 @@ configuration defaults.
         label_atoms = "jfkdlsahgnuvrbytmiceoxwpqz", -- allowed label chars
 
         label_location = -1,           -- label location relative to the match
-                                       -- positive: relative to the start of
-                                       -- the match
-                                       -- 0 or negative: relative to the end of
-                                       -- the match
+                                       -- positive: relative to the start
+                                       -- of the match
+                                       -- 0 or negative: relative to the end
+                                       -- of the match
 
         label_max_len = 2,             -- max label length
 
