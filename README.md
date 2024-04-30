@@ -1,11 +1,11 @@
 Features
 ========
 
-    *   Bidirectional search
-    *   Multi-window navigation
-    *   Smartcase support
-    *   "Steady" deterministic labels
-    *   Search by regular expression
+*   Bidirectional search
+*   Multi-window navigation
+*   Smartcase support
+*   "Steady" deterministic labels
+*   Search by regular expression
 
 Installation
 ============
@@ -22,13 +22,13 @@ Install plugin and add keymaps:
 Usage
 =====
 
-    1.  Initiate search with s or S
-    2.  Start typing search query
-    3.  Type highlighted label to jump to corresponding location at any time
-        Or press C-N or C-P to select location
-    4.  Press Enter to jump to the selected location and continue with regular
-        (/) search
-    5.  Use Backspace, C-W, C-U to edit search query
+1.  Initiate search with s or S
+2.  Start typing search query
+3.  Type highlighted label to jump to corresponding location at any time
+    or press C-N or C-P to select location
+4.  Press Enter to jump to the selected location and continue with regular (/) 
+    search
+5.  Use Backspace, C-W, C-U to edit search query
 
 Configuration
 =============
@@ -92,5 +92,5 @@ Highlight groups
 Contribution
 ============
 
-    1.  Add new tests to the lua/svart/tests.lua
-    2.  Run tests with :SvartTest command
+1.  Add new tests to the lua/svart/tests.lua
+2.  Run tests with :SvartTest command
