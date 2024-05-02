@@ -1,3 +1,5 @@
+Neovim jump navigation plugin.
+
 Features
 ========
 
