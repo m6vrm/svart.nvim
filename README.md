@@ -28,7 +28,7 @@ Usage
 2.  Start typing search query
 3.  Type highlighted label to jump to corresponding location at any time
     or press C-N or C-P to select location
-4.  Press Enter to jump to the selected location and continue with regular (/) 
+4.  Press Enter to jump to the selected location and continue with regular (/)
     search
 5.  Use Backspace, C-W, C-U to edit search query
 
